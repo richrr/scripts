@@ -31,8 +31,6 @@ p <- arg_parser('Calculate comparison and correlation analysis between lists')
 p <- add_argument(p, "expressionDataFile", help="file containing values (measurements) to be used for correlation") # required
 p <- add_argument(p, "--lists", help="lists (of measurement labels e.g. taxa names, phenotypics tests) to generate pairs for calculate correlation", nargs=2) # required; but written as optional format so I explicitly mention the "--lists"
 p <- add_argument(p, "--output", help="output file", default="./result/network_")
-p <- add_argument(p, "--split", help="which subset to run", default=5, type="numeric")
-p <- add_argument(p, "--numberofsplit", help="split the whole pair combinations to smaller splits to run simultaneously when there are too many 'genes'", default=50, type="numeric")
 
 #==================================================================================================================
 # network generation parameters
@@ -90,8 +88,6 @@ combinedFDRCutoff = argv$combFDRCutoff
 
 
 symbleColumnName =  argv$symbolColumnName
-#strainToDoList = as.vector(argv$strainToDoList) 	#c("B6", "B10A") 
-#ExperimentToDoList = as.vector(argv$ExperimentToDoList)  #c("control")		
 
 AnalysToDoList = read.delim(argv$AnalysToDoList,header = FALSE)
 
@@ -261,7 +257,7 @@ if (!file.exists(pairFile)){
 #==================================================================================================================
 # load expression data
 #==================================================================================================================
-expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE)
+expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA"))
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
 
