@@ -1,0 +1,8 @@
+README
+abifpy.py
+setup.py
+abifpy.egg-info/PKG-INFO
+abifpy.egg-info/SOURCES.txt
+abifpy.egg-info/dependency_links.txt
+abifpy.egg-info/not-zip-safe
+abifpy.egg-info/top_level.txt
