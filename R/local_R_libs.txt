@@ -1,0 +1,27 @@
+https://www.stat.osu.edu/computer-support/mathstatistics-packages/installing-r-libraries-locally-your-home-directory
+
+# to see the directories that R searches for libraries, from within R you can do:
+.libPaths()
+
+# If you don't have a directory named R in your home directory, this method will create one and place libraries in it down a long convoluted path.  
+# Typically this isn't a big deal.
+#From within R you can do:
+install.packages('argparser', repos="http://cran.r-project.org")
+
+> .libPaths()
+[1] "/usr/lib64/R/library" "/usr/share/R/library"
+> install.packages('argparser', repos="http://cran.r-project.org")
+Installing package into ‘/usr/lib64/R/library’
+(as ‘lib’ is unspecified)
+Warning in install.packages("argparser", repos = "http://cran.r-project.org") :
+  'lib = "/usr/lib64/R/library"' is not writable
+Would you like to use a personal library instead?  (y/n) y
+Would you like to create a personal library
+~/R/x86_64-redhat-linux-gnu-library/3.2
+to install packages into?  (y/n) 
+
+install.packages('hash', repos="http://cran.r-project.org")
+install.packages('psych', repos="http://cran.r-project.org")
+install.packages('gtools', repos="http://cran.r-project.org")
+install.packages('corpcor', repos="http://cran.r-project.org")
+
