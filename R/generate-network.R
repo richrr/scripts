@@ -1,0 +1,253 @@
+library(argparser)
+#library(hash)
+#library(psych)
+#library(gtools)
+#library(corpcor)
+#library(reshape)
+library(stringr)
+
+# Rscript /nfs1/Morgun_Lab/richrr/scripts/R/generate-network.R --file testPUC.csv --combine 1-2 --group KO
+# Rscript /nfs1/Morgun_Lab/richrr/scripts/R/generate-network.R --file testPUC.csv --combine 1 2 3 4 --group KO
+
+#==================================================================================================================
+# parameters
+#==================================================================================================================
+p <- arg_parser('Extract pairs which pass the FDR and PUC criteria')
+p <- add_argument(p, "--file", help="file which has PUC information", nargs=1) # required; but written as optional format so I explicitly mention the "--file"
+p <- add_argument(p, "--group", help="use the correlation for 'group'. Generate the network for this group") # required; but written as optional format so I explicitly mention the arg
+
+
+p <- add_argument(p, "--output", help="output file", default="./build_netw_")
+p <- add_argument(p, "--combine", help="combine different expts. before generating networks", nargs=Inf)
+  # if you do not provide the combine option, it defaults to only using the first analysis in PUC
+  # first analysis (contains correl in A, correl in B for each gene pair; fold change in A/B for each gene; PUC result) 
+  # the above ends in 
+  # "x
+  # Percentage of Unexpected Correlation.....%"
+  # the next analysis has the same setup for something else
+  
+  # the arguments can be analysis numbers (delimited by the above breakpoint string), NOT the "Analys " in the column header
+  # e.g. 1-5 or 1 2 3 4 5 or 1:5
+  
+
+p <- add_argument(p, "--indivPvalCutoff", help="individualPvalueCutoff", default=0.005, type="numeric") # 0.05
+p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") # 0.05
+p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.3, type="numeric") # 
+
+
+argv <- parse_args(p)
+#print (p)
+
+
+if(length(argv$file) < 1)
+{
+  print("At least 2 files are required. Give --file file ... in cmd")
+  quit()
+}
+
+outputFile = argv$output
+
+individualPvalueCutoff = argv$indivPvalCutoff
+combinedPvalueCutoff = argv$combPvalCutoff
+combinedFDRCutoff = argv$combFDRCutoff
+
+search_group = argv$group
+
+networkFile = paste(outputFile, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv", collapse='_')
+
+
+expand_combine_args = function(pattern, str)
+{
+    range = strsplit(argv$combine, pattern)
+    #print(lengths(range))
+    if(lengths(range) > 2) { print("Error in --combine argument. More than one delimiter detected") ; quit()}
+    analys_vector = seq(as.numeric(range[[1]][1]), as.numeric(range[[1]][2]), by=1)
+    return(analys_vector)   
+}
+
+
+# find where the "PUC results" end for each analysis 
+indx = c()
+fileName <- argv$file
+conn <- file(fileName,open="r")
+linn <-readLines(conn)
+for (i in 1:length(linn)){
+   #print(linn[i])
+    #if((linn[i] == "\"x\"" && grepl("Percentage of Unexpected Correlation", linn[i+1])) || (linn[i] == "x" && grepl("Percentage of Unexpected Correlation", linn[i+1])))
+    if(grepl("Percentage of Unexpected Correlation", linn[i]))
+      {
+            indx = append(indx, i)
+      }
+}
+close(conn)
+linn = ''
+print("Index where PUC results end per analysis:")
+print(indx)
+
+
+# re-read as data frame
+#data = read.csv( argv$file, header=TRUE, check.names=FALSE)
+data = read.csv( argv$file, header=FALSE, check.names=FALSE)
+
+#print(data)
+result = ''
+
+if(is.na(argv$combine) && length(argv$combine))
+{
+    # remove the last two lines from the first analysis and use the remaining
+    #breakpt = indx[1]-3  # accounting for one line of header in the above calculation & read with header
+    breakpt = indx[1]-2  # accounting for one line of header in the above calculation & read without header
+    subdata = data[1:breakpt,]  
+    print(subdata)
+    
+    
+    names <- paste(subdata[,1], subdata[,2], sep="<-->")
+    rownames(subdata) = names
+    subdata = subdata[,-c(1,2)] 
+
+    print(dim(subdata))
+    colnames(subdata) = as.character(unlist(subdata[1, ])) # the first row will be the header
+    subdata = subdata[-1, ] 
+    write.csv (subdata,"testout2.txt")
+    #quit()
+    outForPUC = subdata
+   
+    # calculate combined Pvalue for interest
+    PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
+    #print(PvalueColnames)
+    PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
+    #print(PvalueColnames)
+    interestedPvalueData = outForPUC[,PvalueColnames]
+    interestedPvalueData = as.matrix(interestedPvalueData)
+    interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+    combinedPvalue = interestedPvalueData
+    outForPUC = cbind(outForPUC,combinedPvalue)
+    result = outForPUC 
+
+        
+} else {
+
+   # use some system to combine the results
+   analys_vector = argv$combine
+   # if range is given 1:5 or 1-5
+   if(length(argv$combine) == 1)
+   {
+       if(grepl('-', argv$combine))
+        {
+            analys_vector = expand_combine_args('-', argv$combine)
+        } else if(grepl(':', argv$combine))
+        {
+            analys_vector = expand_combine_args(':', argv$combine)
+        } else {print("Error in --combine argument. No known delimiter detected. Use '-' or ':'") ; quit()}
+
+   } else { analys_vector = as.numeric(argv$combine) }  # if separated by space (1 2 3 4 5)
+   
+   print(analys_vector)
+
+   append_numb = 1
+   indx_counter = 1
+   breakpt = indx[1]-2  # accounting for one line of header in the above calculation & read without header
+   subdata = data[1:breakpt,]  
+   
+   names <- paste(subdata[,1], subdata[,2], sep="<-->")
+   rownames(subdata) = names
+   subdata = subdata[,-c(1,2)] 
+   
+   #print(head(subdata)[1:5])
+   #print(dim(subdata))
+
+   
+   while(append_numb < max(analys_vector))
+   {
+       append_numb = append_numb + 1
+       if( append_numb %in% analys_vector){
+           # bind
+           newstartpt = indx[indx_counter] + 1 # header of next analysis
+           indx_counter = indx_counter + 1
+           breakpt = indx[indx_counter]-2  # accounting for one line of header in the above calculation & read without header
+           print(newstartpt)
+           print(breakpt)
+           newsubdata = data[newstartpt:breakpt,] 
+           names <- paste(newsubdata[,1], newsubdata[,2], sep="<-->")
+           rownames(newsubdata) = names 
+           newsubdata = newsubdata[,-c(1,2)] 
+           #print(dim(newsubdata))
+           subdata = cbind(subdata, newsubdata)
+           #print(head(subdata)[1:5])
+           #print(head(newsubdata)[1:5])
+       }
+   
+   }
+   #print(head(subdata)[1:5])
+   print(dim(subdata))
+   colnames(subdata) = as.character(unlist(subdata[1, ])) # the first row will be the header
+   subdata = subdata[-1, ] 
+   write.csv (subdata,"testout2.txt")
+   #quit()
+   outForPUC = subdata
+   
+   # calculate combined Pvalue for interest
+   PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
+   #print(PvalueColnames)
+   PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
+   #print(PvalueColnames)
+   interestedPvalueData = outForPUC[,PvalueColnames]
+   interestedPvalueData = as.matrix(interestedPvalueData)
+   interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+   combinedPvalue = apply(interestedPvalueData,1
+							,function(pvalues){
+										pvalues = pvalues[!is.na(pvalues)]
+										statistics = -2*log(prod(pvalues))
+										degreeOfFreedom = 2*length(pvalues)
+										combined = 1-pchisq(statistics,degreeOfFreedom)
+									}
+							)
+   outForPUC = cbind(outForPUC,combinedPvalue)
+   result = outForPUC 
+}
+
+
+#calculate FDR for combined pvalue
+combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
+result = cbind(result,combinedFDR)
+
+###########################################################################################################
+#generate network
+###########################################################################################################
+data = result
+#print(head(data))
+
+
+generateNetwork = function(){
+	#generate network After Filter
+
+	# find PUC expected and significant in combinedPvalue and significant in combinedFDR
+	out = data[data[,"PUC"]==1 ,]
+	out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns
+	#print(head(out))
+	#print(dim(out))
+	out = out[(out[,"combinedFDR"]<combinedFDRCutoff)==1,]
+	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
+	# find pvalue data
+	pvalueData = out[,grep("pvalue",colnames(out))]
+	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData))]
+	#print(colnames(pvalueData))
+	#print(head(pvalueData))
+	
+	pvalueData = as.matrix(pvalueData)
+	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
+	passIndevidualPvalue = apply(pvalueData,1,max)<individualPvalueCutoff
+	outNetwork = out[passIndevidualPvalue,]
+
+        outNetwork$names<-rownames(outNetwork)
+        splt = str_split_fixed(outNetwork$names, "<-->", 2)
+        outNetwork = cbind(outNetwork, splt)
+        
+
+	write.csv (outNetwork,networkFile)
+}
+###########################################################################################################
+
+
+generateNetwork()
+
