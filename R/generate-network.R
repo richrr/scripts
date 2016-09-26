@@ -6,13 +6,13 @@ library(argparser)
 #library(reshape)
 library(stringr)
 
-# Rscript /nfs1/Morgun_Lab/richrr/scripts/R/generate-network.R --file testPUC.csv --combine 1-2 --group KO
+# Rscript /nfs1/Morgun_Lab/richrr/scripts/R/generate-network.R --file testPUC.csv --combine 1-2 --group KO --indivPvalCutoff 0.05 --combPvalCutoff 0.1 --combFDRCutoff 0.3
 # Rscript /nfs1/Morgun_Lab/richrr/scripts/R/generate-network.R --file testPUC.csv --combine 1 2 3 4 --group KO
 
 #==================================================================================================================
 # parameters
 #==================================================================================================================
-p <- arg_parser('Extract pairs which pass the FDR and PUC criteria')
+p <- arg_parser('Extract pairs which pass the FDR and PUC criteria across datasets for a single correlation (group)')
 p <- add_argument(p, "--file", help="file which has PUC information", nargs=1) # required; but written as optional format so I explicitly mention the "--file"
 p <- add_argument(p, "--group", help="use the correlation for 'group'. Generate the network for this group") # required; but written as optional format so I explicitly mention the arg
 
@@ -91,6 +91,7 @@ data = read.csv( argv$file, header=FALSE, check.names=FALSE)
 
 #print(data)
 result = ''
+total_numb_input_files = 1
 
 if(is.na(argv$combine) && length(argv$combine))
 {
@@ -143,7 +144,8 @@ if(is.na(argv$combine) && length(argv$combine))
    } else { analys_vector = as.numeric(argv$combine) }  # if separated by space (1 2 3 4 5)
    
    print(analys_vector)
-
+   total_numb_input_files = length(analys_vector)
+   
    append_numb = 1
    indx_counter = 1
    breakpt = indx[1]-2  # accounting for one line of header in the above calculation & read without header
@@ -153,9 +155,6 @@ if(is.na(argv$combine) && length(argv$combine))
    rownames(subdata) = names
    subdata = subdata[,-c(1,2)] 
    
-   #print(head(subdata)[1:5])
-   #print(dim(subdata))
-
    
    while(append_numb < max(analys_vector))
    {
@@ -183,7 +182,7 @@ if(is.na(argv$combine) && length(argv$combine))
    colnames(subdata) = as.character(unlist(subdata[1, ])) # the first row will be the header
    subdata = subdata[-1, ] 
    write.csv (subdata,"testout2.txt")
-   #quit()
+   
    outForPUC = subdata
    
    # calculate combined Pvalue for interest
@@ -205,6 +204,101 @@ if(is.na(argv$combine) && length(argv$combine))
    outForPUC = cbind(outForPUC,combinedPvalue)
    result = outForPUC 
 }
+
+
+
+
+
+##### check which measurement ("gene") pairs have the same trend across experiments ############
+checkConsistency_across_expts = function(s_df, condition, total_numb_input_files, correlThreshold=0 , pvalThreshold=0.1, foldchThreshold=1){
+
+    
+    list_rows_passing_consistency = list()
+    
+    if(condition == "Coefficient"){
+        res_pos = apply(s_df, 1, function(x) sum(x > correlThreshold))
+        res_neg = apply(s_df, 1, function(x) sum(x < correlThreshold))
+        rows_passing_consistency = c()
+        #print("Positive correlation")
+        #print(head(res_pos))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
+            # temporary hack (2) to remove cases where they show one dir in expt1 & other in expt2
+            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
+            #if((!is.na(res_pos[[idx]])) && res_pos[[idx]] > (total_numb_input_files-1)){               #---------------- (2)
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$PosCorrel = rows_passing_consistency
+
+        rows_passing_consistency = c()
+        #print("Negative correlation")
+        #print(head(res_neg))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
+            # temporary hack to remove cases where they show one dir in expt1 & other in expt2
+            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
+            #if((!is.na(res_neg[[idx]])) && res_neg[[idx]] > (total_numb_input_files-1)){               #---------------- (2)
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[2]] = rows_passing_consistency
+        list_rows_passing_consistency$NegCorrel = rows_passing_consistency
+
+    } else if(condition == "pvalue"){
+        res_pos = apply(s_df, 1, function(x) sum(x < pvalThreshold))
+        rows_passing_consistency = c()
+        #print("Pass pvalue cutoff")
+        #print(head(res_pos))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
+            # temporary hack to remove cases where they show one dir in expt1 & other in expt2
+            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
+            #if((!is.na(res_pos[[idx]])) && res_pos[[idx]] > (total_numb_input_files-1)){                #---------------- (2)
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$PvalThresh = rows_passing_consistency
+
+    } else if(condition == "FoldChange"){
+        res_pos = apply(s_df, 1, function(x) sum(x > foldchThreshold))
+        res_neg = apply(s_df, 1, function(x) sum(x < foldchThreshold))
+        rows_passing_consistency = c()
+        #print("Up regulation")
+        #print(head(res_pos))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$Upreg = rows_passing_consistency
+
+        rows_passing_consistency = c()
+        #print("Down regulation")
+        #print(head(res_neg))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] >= (total_numb_input_files-1)){
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[2]] = rows_passing_consistency
+        list_rows_passing_consistency$Dwnreg = rows_passing_consistency
+
+    } 
+    #print(list_rows_passing_consistency)
+    return(list_rows_passing_consistency)
+}
+
+
+
+
+
+
+
+
 
 
 #calculate FDR for combined pvalue
@@ -229,10 +323,9 @@ generateNetwork = function(){
 	out = out[(out[,"combinedFDR"]<combinedFDRCutoff)==1,]
 	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
 	# find pvalue data
+
 	pvalueData = out[,grep("pvalue",colnames(out))]
 	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData))]
-	#print(colnames(pvalueData))
-	#print(head(pvalueData))
 	
 	pvalueData = as.matrix(pvalueData)
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
@@ -243,7 +336,17 @@ generateNetwork = function(){
         splt = str_split_fixed(outNetwork$names, "<-->", 2)
         outNetwork = cbind(outNetwork, splt)
         
+        # check consistency
+        coefficientData = outNetwork[,grep("Coefficient",colnames(outNetwork))]
+        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T)]  # remove this column
+	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData))] # keep group of interest
+	        
+        res = checkConsistency_across_expts(coefficientData, "Coefficient", total_numb_input_files)
+        #print(res)
 
+        resvec = as.vector(unlist(res))
+        #print(resvec)
+        outNetwork = outNetwork[resvec,]
 	write.csv (outNetwork,networkFile)
 }
 ###########################################################################################################
