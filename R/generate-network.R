@@ -53,7 +53,7 @@ combinedFDRCutoff = argv$combFDRCutoff
 
 search_group = argv$group
 
-networkFile = paste(outputFile, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv", collapse='_')
+networkFile = paste(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv", collapse='_')
 
 
 expand_combine_args = function(pattern, str)
@@ -312,6 +312,40 @@ data = result
 #print(head(data))
 
 
+calc_stats = function(inNet, correlThreshold=0){
+
+
+        # get the correlation coeff for the group of interest
+        coefficientData = inNet[,grep("Coefficient",colnames(inNet))]
+        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T)]  # remove this column
+	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData))] # keep group of interest
+	        
+        #print(head(coefficientData))
+        res_pos = apply(coefficientData, 2, function(x) sum(x > correlThreshold))
+        res_neg = apply(coefficientData, 2, function(x) sum(x < correlThreshold))
+        res = cbind(res_pos, res_neg)
+        print(res)
+
+        #print(head(inNet))
+
+        print(paste("Total number of edges: ", nrow(inNet), collapse="")) 
+
+        setpartner1 = unique(as.vector(inNet[,"1"]))
+        #print(length(setpartner1))
+        
+        setpartner2 = unique(as.vector(inNet[,"2"]))
+        #print(length(setpartner2))
+
+        nodes = union(setpartner1, setpartner2)
+        print(paste("Number of unique nodes: ", length(nodes), collapse=""))
+
+
+        edgesDistinctNodes = inNet[which(inNet$"1"!=inNet$"2"), ] 
+        #print(head(edgesDistinctNodes))
+        print(paste("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes), collapse=""))
+
+}
+
 generateNetwork = function(){
 	#generate network After Filter
 
@@ -348,6 +382,9 @@ generateNetwork = function(){
         #print(resvec)
         outNetwork = outNetwork[resvec,]
 	write.csv (outNetwork,networkFile)
+
+        calc_stats(outNetwork)
+
 }
 ###########################################################################################################
 
