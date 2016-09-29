@@ -99,8 +99,7 @@ if(is.na(argv$combine) && length(argv$combine))
     #breakpt = indx[1]-3  # accounting for one line of header in the above calculation & read with header
     breakpt = indx[1]-2  # accounting for one line of header in the above calculation & read without header
     subdata = data[1:breakpt,]  
-    print(subdata)
-    
+    #print(subdata)
     
     names <- paste(subdata[,1], subdata[,2], sep="<-->")
     rownames(subdata) = names
@@ -204,9 +203,6 @@ if(is.na(argv$combine) && length(argv$combine))
    outForPUC = cbind(outForPUC,combinedPvalue)
    result = outForPUC 
 }
-
-
-
 
 
 ##### check which measurement ("gene") pairs have the same trend across experiments ############
@@ -314,18 +310,18 @@ data = result
 
 calc_stats = function(inNet, correlThreshold=0){
 
-
+        # if it is a single dataset it becomes a vector so adding the drop=FALSE
         # get the correlation coeff for the group of interest
-        coefficientData = inNet[,grep("Coefficient",colnames(inNet))]
-        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T)]  # remove this column
-	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData))] # keep group of interest
+        coefficientData = inNet[,grep("Coefficient",colnames(inNet)),drop=FALSE]
+        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T),drop=FALSE]  # remove this column
+	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData)),drop=FALSE] # keep group of interest
 	        
         #print(head(coefficientData))
         res_pos = apply(coefficientData, 2, function(x) sum(x > correlThreshold))
         res_neg = apply(coefficientData, 2, function(x) sum(x < correlThreshold))
         res = cbind(res_pos, res_neg)
         print(res)
-
+        
         #print(head(inNet))
 
         print(paste("Total number of edges: ", nrow(inNet), collapse="")) 
@@ -358,8 +354,9 @@ generateNetwork = function(){
 	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
 	# find pvalue data
 
-	pvalueData = out[,grep("pvalue",colnames(out))]
-	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData))]
+        # if it is a single dataset it becomes a vector so adding the drop=FALSE
+	pvalueData = out[,grep("pvalue",colnames(out)), drop=FALSE]
+	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData)), drop=FALSE]
 	
 	pvalueData = as.matrix(pvalueData)
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
@@ -370,17 +367,21 @@ generateNetwork = function(){
         splt = str_split_fixed(outNetwork$names, "<-->", 2)
         outNetwork = cbind(outNetwork, splt)
         
-        # check consistency
-        coefficientData = outNetwork[,grep("Coefficient",colnames(outNetwork))]
-        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T)]  # remove this column
-	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData))] # keep group of interest
-	        
-        res = checkConsistency_across_expts(coefficientData, "Coefficient", total_numb_input_files)
-        #print(res)
+        # select the group of interest
+        coefficientData = outNetwork[,grep("Coefficient",colnames(outNetwork)), drop=FALSE]
+        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T), drop=FALSE]  # remove this column
+	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData)), drop=FALSE] # keep group of interest
+	
+	# check consistency only if more than one dataset
+	print(ncol(coefficientData))
+	if(ncol(coefficientData) > 1){
+            res = checkConsistency_across_expts(coefficientData, "Coefficient", total_numb_input_files)
+            #print(res)
 
-        resvec = as.vector(unlist(res))
-        #print(resvec)
-        outNetwork = outNetwork[resvec,]
+            resvec = as.vector(unlist(res))
+            #print(resvec)
+            outNetwork = outNetwork[resvec,]
+        }
 	write.csv (outNetwork,networkFile)
 
         calc_stats(outNetwork)
