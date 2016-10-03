@@ -87,7 +87,9 @@ AnalysToDoList = read.delim(argv$AnalysToDoList,header = FALSE)
 samplIdCol = argv$mapColumns[1]
 exptCol = argv$mapColumns[2]
 
+#==================================================================================================================
 # create a group_sampleid dictionary
+#==================================================================================================================
 mapFile=read.delim(argv$mapFile,header = TRUE,sep="\t",check.names=FALSE)
 dict = hash()
 # for unique items in the experiment column
@@ -98,15 +100,17 @@ for(k in levels(mapFile[, exptCol])){
 }
 
 
-
+#==================================================================================================================
 # check the number and order of samples assigned to groups in dict. MAY be as per the order in which the samples are added (order in the mapping file)
+#==================================================================================================================
 for(k in keys(dict)){
     str_r_l = paste(k, length(dict[[k]]), "values", paste(as.vector(dict[[k]]), collapse=", "), sep="---") 
     print(str_r_l)
 }
 
-
+#==================================================================================================================
 # check if the order of samples in the two categories is correct; affects any time there is delta, paired, timelag
+#==================================================================================================================
 checkPairing = function(catg1, catg2, dict, mapFile, pairedInfoColumn, samplIdCol){
 	s1 = as.vector(dict[[catg1]])
         s2 = as.vector(dict[[catg2]])
@@ -515,6 +519,7 @@ write.csv(folchout,paste(outputFile,"output.csv",sep='folch-'),row.names=FALSE)
 
 print("\nFinished performing the requested analyses.\n")
 
+print("\nYou may want to run merge-comp-correl-results-files.R next.\n")
 
 
 
