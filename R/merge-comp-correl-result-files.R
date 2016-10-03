@@ -1,28 +1,7 @@
-# function: calculate correlation between two lists
-# input files: 
-	#	1.  two lists to generate pair for calculate correlation
-	#	2.	a "gene expression" file
-# output file:
-	#	correlation coefficient,pvalue, fdr ;   for each pair of "genes"
-#install.packages("stringr")
-# note:
-#   if there are lines with the same "ID"(gene symble), the lines other than the first are deleted
+## to do:
+# implement code for majority of datasets as consistency
 
-# [rodrrich@transkingdom result]$ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_comp-output.csv network_spearm-manwhit_comp-output.csv network_spearm-manwhit_comp-output.csv --parallel
-
-# Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_comp-output.csv network_spearm-manwhit_comp-output.csv network_spearm-manwhit_comp-output.csv --pvals --parallel
-
-
-# $ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_corr-output.csv network_spearm-manwhit_corr-output.csv network_spearm-manwhit_corr-output.csv --parallel --output merged_test_files_corr_
-
-# $ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_corr-output.csv network_spearm-manwhit_corr-output.csv network_spearm-manwhit_corr-output.csv --pvals --parallel --output merged_test_files_corr_
-
-# $ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_corr-output.csv network_spearm-manwhit_corr-output.csv --parallel --output merged_test_files_corr_
-
-
-# [rodrrich@transkingdom result]$ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_comp-output-test.csv network_spearm-manwhit_comp-output-test.csv --parallel --output merged_test_files_comp_
-
-# [rodrrich@transkingdom result]$ Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_comp-output-test.csv network_spearm-manwhit_comp-output-test.csv --pvals --parallel --output merged_test_files_comp_
+# Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_expt1_comp-output.csv network_spearm-manwhit_expt2_comp-output.csv --parallel --output merged_two_expts_sp_mw_files_comp_all_
 
 
 
@@ -42,15 +21,22 @@ library(stringr)
 p <- arg_parser('Calculate which gene or pairs show consistency across experiments for same (comparison and/or correlation) analysis')
 p <- add_argument(p, "--files", help="files where (corresponding (for --parallel)) columns are pasted one after other", nargs=Inf) # required; but written as optional format so I explicitly mention the "--files"
 p <- add_argument(p, "--output", help="output file", default="./merged_files_")
+p <- add_argument(p, "--parallel", help="merge file1-col1 file2-col1 ... filen-col1 file1-col2 file2-col2 ... filen-col2", flag=TRUE) # only option; # else prints all cols from file 1 followed by all from file 2                                                                                   
+p <- add_argument(p, "--pvals", help="merge only columns with pvalues. Default ALL columns", flag=TRUE) # default all columns
+p <- add_argument(p, "--nofileinfo", help="do not keep track of which column came from which file", flag=TRUE)  # do not use this flag. It can get confusing to know which sample came from which file if this flag is used.
+p <- add_argument(p, "--majority", help="the element is consistent across MAJORITY of the datasets. Default is consistent across ALL datasets.", flag=TRUE)
+     # Note that to use this option you need to implement the consistency check differently. Just switching the condition FROM (= numb. files) TO (>= numb. files/2) is not sufficient
+     # Remember that a gene may be up (sig.), up (not-sig.), down (sig.) and still show up as consistent if you check for pvalue and FC/co-eff separately
+     # You need to implement code so that pvalue AND FC/co-eff is simultanesouly checked if you plan to use the majority option 
+     # this is not a problem if you use the default of consistent across ALL datasets
+# thresholds to check consistency
+p <- add_argument(p, "--correlThreshold", help="correlThreshold", default=0, type="numeric")
+p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.05, type="numeric")
+p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, type="numeric")
+p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 
-p <- add_argument(p, "--parallel", help="merge file1-col1 file2-col1 ... filen-col1 file1-col2 file2-col2 ... filen-col2", flag=TRUE) # only option; 
-                                                                                   # else prints all cols from file 1 followed by all from file 2
 
-p <- add_argument(p, "--pvals", help="merge only columns with pvalues.", flag=TRUE) # default all columns
-
-p <- add_argument(p, "--nofileinfo", help="do not keep track of which column came from which file", flag=TRUE)  # do not use this flag. It can get confusing to know
-# which sample came from which file if this flag is used.
-
+ 
 argv <- parse_args(p)
 #print (p)
 
@@ -61,13 +47,24 @@ if(length(argv$files) < 2)
   quit()
 }
 
+if(argv$majority){
+  print("This option has not yet been implemented. Bye!")
+  quit()
+}
+
 outputFile = argv$output
+correlThreshold = argv$correlThreshold 
+pvalThreshold = argv$pvalThreshold
+foldchThreshold = argv$foldchThreshold
+
 
 # number of columns
 max_numb_cols = 0
 
 df = list()
+#------------------------------------------------------------------
 # read the files one after the other:
+#------------------------------------------------------------------
 for( numb in 1:length(argv$files)){
    df[numb] = list(read.csv( argv$files[numb], header=TRUE,check.names=FALSE))
 
@@ -87,22 +84,20 @@ if(argv$pvals){
 outputFile = paste(outputFile, "only-pvals-", sep = '_')
 }
 
-
+#------------------------------------------------------------------
 # merge the files:
+#------------------------------------------------------------------
 if(!argv$parallel){
     outputFile = paste(outputFile,"output.csv",sep='merged-serial-')
     write.csv(as.data.frame(df), outputFile, row.names=FALSE)
 } else {
 
-    #n = 0
     para_df = c()
-    
 
     for(col in 1:max_numb_cols){
         
         for(file in 1:length(df)){
-            #n = n+1
-            #if(n == 1){
+            
             if(file == 1 && col == 1){
                 para_df = df[[file]][col]
             } else {
@@ -139,8 +134,9 @@ if(argv$pvals){
 }
 
 
-
+#------------------------------------------------------------------
 # re-read the merged file as a dataframe 
+#------------------------------------------------------------------
 total_numb_input_files = length(argv$files)
 merged_df = read.csv( outputFile, header=TRUE,check.names=FALSE)
 #print(head(merged_df)[1:5])
@@ -158,7 +154,7 @@ if(argv$pvals){
 
              if(all(apply(l_identical_inp, 2, identical, l_identical_inp[, 1]))){
                     print("All are equal")
-                    rownames(merged_df) <- merged_df[, 1] ## set rownames
+                    rownames(merged_df) <- merged_df[, 1]                           ## set rownames
                     merged_df <- merged_df[, -c(1:total_numb_input_files)]          ## remove the first "total numb of input files" columns      
              } else {
                     print(l_identical_inp)
@@ -166,14 +162,14 @@ if(argv$pvals){
                     quit()
              }
           }
-
-
 }
 
 
-
-##### check which measurement ("gene") pairs have the same trend across experiments ############
-checkConsistency_across_expts = function(s_df, condition, total_numb_input_files, correlThreshold=0 , pvalThreshold=0.1, foldchThreshold=1){
+#------------------------------------------------------------------
+# check which measurement ("gene") or pairs have the same trend across experiments
+# identify the rows where values are >/< than threshold
+#------------------------------------------------------------------
+checkConsistency_across_expts = function(s_df, condition, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold){
 
     
     list_rows_passing_consistency = list()
@@ -185,10 +181,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #print("Positive correlation")
         #print(head(res_pos))
         for(idx in 1:nrow(s_df)){
-            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
-            # temporary hack (2) to remove cases where they show one dir in expt1 & other in expt2
-            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
-            #if((!is.na(res_pos[[idx]])) && res_pos[[idx]] > (total_numb_input_files-1)){               #---------------- (2)
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
                 rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
             }
         }
@@ -199,10 +192,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #print("Negative correlation")
         #print(head(res_neg))
         for(idx in 1:nrow(s_df)){
-            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
-            # temporary hack to remove cases where they show one dir in expt1 & other in expt2
-            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
-            #if((!is.na(res_neg[[idx]])) && res_neg[[idx]] > (total_numb_input_files-1)){               #---------------- (2)
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] == (total_numb_input_files)){
                 rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
             }
         }
@@ -215,10 +205,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #print("Pass pvalue cutoff")
         #print(head(res_pos))
         for(idx in 1:nrow(s_df)){
-            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){               #---------------- (1)
-            # temporary hack to remove cases where they show one dir in expt1 & other in expt2
-            # once I have three expts, this hack is no longer needed, use (i.e. uncomment) --------(1) and comment (2)
-            #if((!is.na(res_pos[[idx]])) && res_pos[[idx]] > (total_numb_input_files-1)){                #---------------- (2)
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
                 rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
             }
         }
@@ -232,7 +219,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #print("Up regulation")
         #print(head(res_pos))
         for(idx in 1:nrow(s_df)){
-            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] >= (total_numb_input_files-1)){
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
                 rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
             }
         }
@@ -243,7 +230,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #print("Down regulation")
         #print(head(res_neg))
         for(idx in 1:nrow(s_df)){
-            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] >= (total_numb_input_files-1)){
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] == (total_numb_input_files)){
                 rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
             }
         }
@@ -256,43 +243,37 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
 }
 
 
-
-# to dump the consistent results in output files
-result_dumper = list()
+#------------------------------------------------------------------
+# check Consistency across ALL expts using the thresholds 
+#------------------------------------------------------------------
+result_dumper = list()  # to dump the consistent results in output files
 cols_processed = 1
-while(cols_processed < ncol(merged_df))
+while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps of (number of input files)
 {
-   #print(cols_processed)
    subset_df = merged_df[,cols_processed:(cols_processed+total_numb_input_files-1)]
-   #print(head(subset_df))
    cols_processed = cols_processed + total_numb_input_files
 
-   # apply some function to identify consistency, which function??
-   # use which function where the rows values are >/< than threshold
    
    if(grepl("Coefficient", colnames(subset_df)[1])){
-       #print(colnames(subset_df))
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "Coefficient", total_numb_input_files))
+       out_res = append(out_res, checkConsistency_across_expts(subset_df, "Coefficient", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
        
    } else if(grepl("pvalue", colnames(subset_df)[1])){
-       #print(colnames(subset_df))
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "pvalue", total_numb_input_files))
+       out_res = append(out_res, checkConsistency_across_expts(subset_df, "pvalue", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
        
    } else if(grepl("FoldChange", colnames(subset_df)[1])){
-       #print(colnames(subset_df))
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "FoldChange", total_numb_input_files))
+       out_res = append(out_res, checkConsistency_across_expts(subset_df, "FoldChange", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -302,13 +283,12 @@ while(cols_processed < ncol(merged_df))
 }
 
          
-
-##### Print the results to file ########
+#------------------------------------------------------------------
+# Print the consistent results for each aspect (e.g. pos correl, neg correl, pvalue, FC, etc.) to file 
 #print(result_dumper)
 #dput(result_dumper, file = paste(outputFile,"dump_consistent_output.csv",sep='-'))
-
 #print(length(result_dumper))
-
+#------------------------------------------------------------------
 outputFile = paste(outputFile,"consistent_across_expts_output.csv",sep='-')
 strr = '' 
 for(i in 1:length(result_dumper)){
@@ -323,49 +303,54 @@ for(i in 1:length(result_dumper)){
         c_elemts_str = paste(name_c_elem, c_elemts_str , sep=':\t') # add the name of the child element
         l_strr = paste(l_strr, c_elemts_str , sep='\n')
     }
-    #print(l_strr)
     strr = paste(strr, l_strr, sep='\n')   
 }
-#print(strr)
 write(strr, file=outputFile)
 
 
-
+#------------------------------------------------------------------
 # this finds the analysis number 
+#------------------------------------------------------------------
 find_analysis_number = function(x){
    res = as.numeric(str_match(x, "Analys ([0-9]+) .*")[,2])
    res
 }
 
+
+#------------------------------------------------------------------
 # finds which gene (or pairs) show consistency (across expts) in multiple aspects of the same analysis (e.g. direction of comparison (or correlation) and sign of pval)
+#------------------------------------------------------------------
 extract_common_vals = function(nam, searchIn, searchThese){
    res = intersect(searchIn[[nam]],searchThese)
    res
 }
 
 
-# finds which gene pairs show consistency (across expts) in multiple aspects of the same analysis (e.g. direction of correlation and sign of pval) 
+#------------------------------------------------------------------
+# finds which gene pairs show consistency (across expts) in multiple aspects of the same analysis (e.g. direction of correlations and sign of pval) 
 # (e.g. pos correl of first, neg correl of second and pval  i.e. pos correl of first but not second and pval
 #       neg correl of first, pos correl of second and pval  i.e. neg correl of first but not second and pval)
+#------------------------------------------------------------------
 extract_common_vals_3_vectors = function(names, searchIn1, searchIn2, searchThese){
  res = list()
  for(nam in names){
-   #print(nam)
    resint = intersect(searchIn1[[nam]],searchThese)
    res = append(res, setdiff(resint, searchIn1[[nam]])) #produces all elements of the first input vector without any matching elements from the second input vector
-   #print(res)
  }
  res
 }
 
 
-
+#------------------------------------------------------------------
+# Identify which "genes" or "pairs" are present in FC/Coeff and pvalue
+#------------------------------------------------------------------
 SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2){
 
     # this returns the analysis number    
     res1=lapply(analy_name_c_elem1, find_analysis_number)
     res2=lapply(analy_name_c_elem2, find_analysis_number)
     
+    # if the columns are from different analysis
     if(length(union(res1, res2)) != 1){
         print(analys_processed)
         print(p_elem1)
@@ -373,7 +358,7 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
         print(union(res1, res2))
         print("A: something ridiculous happened here, so I quit")
         quit() 
-    } # if the columns are from different analysis
+    } 
     
     names_elem1 = names(lengths(p_elem1)[-1])
     #print(p_elem1[[names_elem1[1]]])   
@@ -386,24 +371,26 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
     l_strr = paste('\n', analysis_names, sep='')
     for(x in 1:length(res)){ # number of child elements (e.g. names, pval, pcorr, ncorr, upreg, dwnreg, etc.)
         consis_elem = res[[x]]
-        #print(consis_elem)
         if(length(consis_elem) > 0){
           l_strr = paste(l_strr, paste(consis_elem, collapse=',') , sep='\n')
         }
     }
-    #print(l_strr)
     return(l_strr)
 
 }
 
 
+#------------------------------------------------------------------
 
+#------------------------------------------------------------------
 CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_name_c_elem3, p_elem1, p_elem2, p_elem3){
 
     # this returns the analysis number    
     res1=lapply(analy_name_c_elem1, find_analysis_number)
     res2=lapply(analy_name_c_elem2, find_analysis_number)
     res3=lapply(analy_name_c_elem3, find_analysis_number)
+
+    # if the columns are from different analysis
     if(length(union(union(res1, res2), res3)) != 1){
         print(analys_processed)
         print(p_elem1)
@@ -412,7 +399,7 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
         print(union(union(res1, res2), res3))
         print("B: something ridiculous happened here, so I quit")
         quit() 
-    } # if the columns are from different analysis
+    }
     
     # names of child element except the child element "name"
     names_elem1 = names(lengths(p_elem1)[-1])
@@ -427,39 +414,31 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
     if(length(res) > 0) {
       for(x in 1:length(res)){ # number of child elements (e.g. names, pval, pcorr, ncorr, etc.)
         consis_elem = res[[x]]
-        #print(consis_elem)
         if(length(consis_elem) > 0){
           l_strr = paste(l_strr, paste(consis_elem, collapse=',') , sep='\n')
         }
       }
     }
-    #print(l_strr)
     return(l_strr)
 
 }
 
 
-
-
-
-
-##### Check which measurement ("gene") (or pairs) show same trends in analysis across expts: same direction of comparison (or correlation) and sig pval across expts ######
+#------------------------------------------------------------------
+# Check which measurement ("gene") (or pairs) show same trends in multiple aspects of analysis across expts: same direction of comparison (or correlation) and sig pval across expts
+#------------------------------------------------------------------
 outputFile = paste(outputFile,"consistent_across_expts_and_analysis_output.csv",sep='-')
 analys_processed = 1
 consis_strr = '' 
-#print(head(result_dumper))
-
 
 while(analys_processed < length(result_dumper)){
     p_elem1 = result_dumper[[analys_processed]]
     p_elem2 = result_dumper[[analys_processed+1]]
-    
-        
+            
     elem1 = p_elem1[1] # child element "name"
     analy_name_c_elem1 = elem1[[1]] # this returns a vector of all the elements in the child element "name"
     elem2 = p_elem2[1] # child element "name"
     analy_name_c_elem2 = elem2[[1]] # this returns a vector of all the elements in the child element "name"
-
 
     # contains foldchange
     res_foldch = lapply(analy_name_c_elem1, function(x) grepl("FoldChange", x))
@@ -505,7 +484,11 @@ while(analys_processed < length(result_dumper)){
 print(consis_strr)
 write(consis_strr, file=outputFile)
 
-#print(warnings())
+if(argv$warnings){print(warnings())}
+
+print("Finished performing the requested analyses.")
+
+print("You may want to run calc-PUC or generate-network.R next.")
 
 
 
