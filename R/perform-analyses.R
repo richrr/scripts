@@ -2,7 +2,7 @@
 ## partial correlation
 
 
-# Usage: Rscript perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID --genNetwork
+# Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID --genNetwork
 
 
 # Allowed analyses (conditions): 
@@ -233,16 +233,17 @@ genes2 = genes2[order(genes2)]
 
 
 pairs = ''
-if(argv$noCorrelationsRequested){
+if(!argv$noCorrelationsRequested){
   if (!file.exists(pairFile)){
 	if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
-		#pairs = t(combn(genes1,2))[,2:1]
-                # I am using this https://gist.github.com/randy3k/10015496
-                pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE)
+		pairs = t(combn(genes1,2))[,2:1]
+		# use below for testing purposes and/or when calculating partial correlation # has same gene pairs (e.g. gene1 gene1)
+                #pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE) # from https://gist.github.com/randy3k/10015496 for testing purposes 
 	}else{
 		pairs = expand.grid(genes1,genes2)  # this has all the above & their opposite (e.g. gene1 gene2 and gene2 gene1) & same gene pairs (e.g. gene1 gene1)
 	}	
-	write.csv(pairs,pairFile,row.names=FALSE)
+	#write.csv(pairs,pairFile,row.names=FALSE)
+	#file.remove("./testpair.txt")
   }else{
 	pairs = read.csv(pairFile)
   }
@@ -523,9 +524,10 @@ write.csv(corrout,paste(outputFile,"output.csv",sep='corr-'),row.names=FALSE)
 write.csv(compout,paste(outputFile,"output.csv",sep='comp-'),row.names=FALSE)
 write.csv(folchout,paste(outputFile,"output.csv",sep='folch-'),row.names=FALSE)
 
-print("\nFinished performing the requested analyses.\n")
+print("Finished performing the requested analyses.")
 
-print("\nYou may want to run merge-comp-correl-results-files.R next.\n")
+print("You may want to run merge-comp-correl-results-files.R next.")
+
 
 
 
