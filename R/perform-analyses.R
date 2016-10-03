@@ -45,6 +45,7 @@ p <- add_argument(p, "expressionDataFile", help="file containing values (measure
 p <- add_argument(p, "--output", help="output file", default="./result/network_")
 p <- add_argument(p, "--symbolColumnName", help="the name of the column containing the measurement labels in expression data file", default="#SampleID") # 'UniqueID'
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
+p <- add_argument(p, "--noCorrelationsRequested", help="This is a preliminary analysis and no correlations are requested. Use this if you have a huge (e.g. >10K input elements as rows)", flag=TRUE)
 
 # # required; but written as optional format so I explicitly mention the following in cmd line
 p <- add_argument(p, "--lists", help="lists (of measurement labels e.g. taxa names, phenotypics tests) to generate pairs for calculate correlation", nargs=2) 
@@ -230,7 +231,10 @@ genes1 = genes1[order(genes1)] # ascending sort
 genes2 = as.vector(list2[!duplicated(list2[,1]),1] )
 genes2 = genes2[order(genes2)]
 
-if (!file.exists(pairFile)){
+
+pairs = ''
+if(argv$noCorrelationsRequested){
+  if (!file.exists(pairFile)){
 	if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
 		#pairs = t(combn(genes1,2))[,2:1]
                 # I am using this https://gist.github.com/randy3k/10015496
@@ -239,8 +243,9 @@ if (!file.exists(pairFile)){
 		pairs = expand.grid(genes1,genes2)  # this has all the above & their opposite (e.g. gene1 gene2 and gene2 gene1) & same gene pairs (e.g. gene1 gene1)
 	}	
 	write.csv(pairs,pairFile,row.names=FALSE)
-}else{
+  }else{
 	pairs = read.csv(pairFile)
+  }
 }
 
 
@@ -250,6 +255,7 @@ if (!file.exists(pairFile)){
 expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA", "NaN"))
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
+
 
 
 calcFC = function(v1 , v2){
