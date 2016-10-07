@@ -62,17 +62,93 @@ networkFile = paste(outputFile, search_group, "indiv-pval", individualPvalueCuto
 
 
 
+ # check whether the first "number of files" columns are the same and remove them after setting row names
+remove_redundant_columns = function(this_df, total_numb_input_files){
+         l_identical_inp = as.character(this_df[, 1])
+        
+         
+         # if there are more than 1 datasets
+         if(total_numb_input_files>1){
+             # create a data frame of all datasets
+             for(z in 2:total_numb_input_files){
+                    l_identical_inp = cbind(l_identical_inp, as.character(this_df[,z]))
+             }
 
-data = read.csv( argv$file, header=TRUE, check.names=FALSE, row.names=1)
+             if(all(apply(l_identical_inp, 2, identical, l_identical_inp[, 1]))){
+                    print("All are equal")
+                    rownames(this_df) <- this_df[, 1]                           ## set column 1 as rownames
+                    this_df <- this_df[, -c(1:total_numb_input_files)]          ## remove the first "total numb of input files" columns      
+             } else {
+                    print(l_identical_inp)
+                    print("All are NOT equal")
+                    quit()
+             }
+          }
 
+      return(this_df)
+}
+
+
+calc_PUC_at_thresholds = function(df){
+    
+    combined_fdr = c(0)
+    puc_percent = c(0)
+    df = as.matrix(df)
+    df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
+    #fdr_range = range(as.vector(df[,"combinedFDR"]))
+    fdr_min = min(as.vector(df[,"combinedFDR"]))
+    fdr_max = max(as.vector(df[,"combinedFDR"]))
+    print(fdr_min)
+    print(fdr_max)
+    m_df = as.matrix(df[,c("combinedFDR", "PUC")])
+    m_df = apply(m_df,2,function(x){as.numeric(as.vector(x))})
+    
+    for(r in sort(seq(as.numeric(fdr_min), as.numeric(fdr_max), length.out=100))){  ##length.out: desired length of the sequence
+        combined_fdr = c(combined_fdr, r)
+        
+        #nrow(m_df[which(m_df[,"combinedFDR"] <= r & m_df[,"PUC"] == 1), , drop=FALSE])
+        df_under_fdr = m_df[which(m_df[,"combinedFDR"] <= r), , drop=FALSE]
+        DEN = nrow(df_under_fdr)
+        
+        goog_puc_in_df_under_fdr =  df_under_fdr[which(df_under_fdr[,"PUC"] == 1), , drop=FALSE]
+        NUM = DEN - nrow(goog_puc_in_df_under_fdr)
+        
+        puc_percent = c(puc_percent, as.numeric(NUM*100/DEN))
+    }
+    #print(head(combined_fdr))
+    #print(head(puc_percent))
+    
+    plt = cbind(combined_fdr, puc_percent)
+    #print(head(plt))
+    
+    pdf(paste(search_group, 'FDRvsPUC.pdf', sep='-'))
+    plot(combined_fdr, puc_percent, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2 ) 
+    #plot(plt, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2 ) 
+    
+    dev.off()
+
+    return(plt)
+
+}
+
+
+   # consistent pairs
    consist_elems = read.csv( argv$consistent, header=FALSE)
-
    consist_elems = as.vector(consist_elems[!duplicated(consist_elems[,1]),1] )	#delete duplicated array probes
    consist_elems = consist_elems[order(consist_elems)] # ascending sort
-   consist_elems = grep("<==>", consist_elems, value=TRUE)
-   #head(consist_elems)
+   consist_elems = grep("<==>", consist_elems, value=TRUE) # keep pairs
    
-   subdata = data[consist_elems,-c(1)] 
+   # keep consistent pairs only
+   #data = read.csv( argv$file, header=TRUE, check.names=FALSE, row.names=1)
+   #subdata = data[consist_elems,-c(1)] 
+   data = read.csv( argv$file, header=TRUE, check.names=FALSE)
+   subdata = data[data[,1] %in% consist_elems,] 
+   total_numb_input_files = length(grep("pairName", colnames(subdata)))
+   print(total_numb_input_files)
+   print(dim(subdata))
+
+   subdata = remove_redundant_columns(subdata, total_numb_input_files)
+   print(dim(subdata))
    
    #head(subdata)
    
@@ -84,6 +160,7 @@ data = read.csv( argv$file, header=TRUE, check.names=FALSE, row.names=1)
    # calculate combined Pvalue for interest
    PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
    PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
+   total_numb_input_files = length(PvalueColnames)
    interestedPvalueData = outForPUC[,PvalueColnames]
    interestedPvalueData = as.matrix(interestedPvalueData)
    interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
@@ -95,6 +172,7 @@ data = read.csv( argv$file, header=TRUE, check.names=FALSE, row.names=1)
 										combined = 1-pchisq(statistics,degreeOfFreedom)
 									}
 							)
+   #colnames(combinedPvalue) = paste("combinedPvalue", search_group, sep='_')
    outForPUC = cbind(outForPUC,combinedPvalue)
 
    # calculate median coefficient for interest
@@ -123,9 +201,33 @@ result = cbind(result,combinedFDR)
   #sorted_result = result[with(result, order(combinedFDR)), ] 
  
 
+#==================================================================================================================
+#    						generate foldChange
 
 
-############## to do:  calculate PUC #######################
+	FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
+	#print(head(FoldChangeMetabolic))
+
+        FoldChangeMetabolic = remove_redundant_columns(FoldChangeMetabolic, total_numb_input_files)
+        print(dim(FoldChangeMetabolic))
+	
+        #head(FoldChangeMetabolic)
+
+   # calculate median FoldChange
+   FoldChangeColnames = colnames(FoldChangeMetabolic)[grep("FoldChange",colnames(FoldChangeMetabolic))]
+   #FoldChangeColnames = FoldChangeColnames[grep(search_group,FoldChangeColnames)] # you may not need this
+   interestedFoldChangeData = FoldChangeMetabolic[,FoldChangeColnames]
+   interestedFoldChangeData = as.matrix(interestedFoldChangeData)
+   interestedFoldChangeData = apply(interestedFoldChangeData,2,function(x){as.numeric(as.vector(x))})
+   combinedFoldChange = apply(interestedFoldChangeData,1, function(x){median(x, na.rm = TRUE)})
+   FoldChangeMetabolic$geneName = rownames(FoldChangeMetabolic)
+   FoldChangeMetabolic = cbind(FoldChangeMetabolic,combinedFoldChange)
+
+   #head(FoldChangeMetabolic)
+
+
+
+
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # calculate PUC 
@@ -143,197 +245,84 @@ result = cbind(result,combinedFDR)
 # you need to grep the required columns
 
 
-Data = corrout
-dataName = ''
+#Data = read.csv("testout2.txt",header = TRUE,check.names=FALSE,stringsAsFactors = FALSE)
+Data = result
+
+
+#head(Data)
+
 # calculate PUC
 #==================================================================================================================
-forPUC = function(FoldChangeFile, categ1, categ2){
-	FoldChangeCol = paste(categ1,"vs",categ2,"FoldChange",sep=" ")
-        geneIDCol = "geneName"
+forPUC = function(FoldChangeMetabolic){
+	#FoldChangeCol = paste(categ1,"vs",categ2,"FoldChange",sep=" ")
+        #geneIDCol = "geneName"
 
 	#change out format for PUC
-	library(stringr)
-	pair = str_split(Data[,"pairName"],"<==>")
+	row_names_Data = rownames(Data)
+	pair = str_split( row_names_Data ,"<==>") 
 	pairs = t(as.data.frame(pair))
-	#pairs = str_replace_all(pairs,perl("\\.\\d"),"")
-	colnames(pairs) = c("partner1","partner2")
-	#outForPUC = apply(outForPUC, 2, function(x) as.numeric(as.character(x))) # convert the chars to numeric
-        Data = apply(Data, 2, function(x) as.numeric(as.character(x))) # convert the chars to numeric
-        outForPUC = cbind(pairs,Data)
 	
-        g_grep_cols = c("partner1","partner2")
-        for(categ in c(categ1, categ2)){
-            grep_cols_c = grep(paste(categ," ",sep="") , colnames(outForPUC), value=TRUE, fixed=TRUE)
-            for(suff_str in c("Coefficient" , "pvalue")){
-                #regex_patt = paste(categ, suff_str , sep = ' .*')
-                grep_cols = grep(suff_str , grep_cols_c, value=TRUE)
-                # remove the 'pvalue' from comparisons:
-                grep_cols = grep(" vs " , grep_cols, value=TRUE, invert=TRUE)
-                # remove the 'timelag' correlations:
-                grep_cols = grep(" timelag " , grep_cols, value=TRUE, invert=TRUE)
-                # remove the 'delta' correlations if not present in input:
-                if( !(grepl(" minus ", categ)) ){
-                    grep_cols = grep(" minus " , grep_cols, value=TRUE, invert=TRUE)
-                }
-                #print(grep_cols)
-                
-                l_identical_inp = outForPUC[,grep_cols[1]]
-                if(length(grep_cols)>1){
-                    for(z in 2:length(grep_cols)){
-                        l_identical_inp = cbind(l_identical_inp, outForPUC[,grep_cols[z]])
-                    }
-
-                    
-                    #if(all(sapply(list(l_identical_inp), FUN = identical, outForPUC[,grep_cols[1]]))){
-                    if(all(apply(l_identical_inp, 2, identical, outForPUC[,grep_cols[1]]))){
-                        #print("All are equal")
-                    } else {
-                        print(grep_cols)
-                        print(head(l_identical_inp))
-                        print("All are NOT equal")
-                        quit()
-                    }
-                }
-                # double check that the vectors are the same, if true, add the first one
-                g_grep_cols = c(g_grep_cols, grep_cols[1]) # just add the first one, since the others are just duplicates
-            }
-        }   
+	colnames(pairs) = c("partner1","partner2")
+	Data = apply(Data, 2, function(x) as.numeric(as.character(x))) # convert the chars to numeric
+	rownames(pairs) = row_names_Data # remove this if you do not want row names
+        outForPUC = cbind(pairs,Data)
+	#print(head(outForPUC))
+	
+        grep_cols_c = grep("pvalue", colnames(outForPUC), ignore.case = TRUE , value=TRUE, fixed=TRUE) 
+        grep_cols_c = append(grep_cols_c, grep("combined" , colnames(outForPUC), value=TRUE, fixed=TRUE) )
+ 
+        g_grep_cols = c("partner1","partner2", grep_cols_c) 
+           
 
         #print(g_grep_cols)
 
         outForPUC = outForPUC[,g_grep_cols]
-        #print(head(outForPUC))
-        #quit()
+        
 #==================================================================================================================
 #    						generate foldChange
 
-        if( grepl(" minus ", FoldChangeCol) ){
-                    FoldChangeCol = gsub(" minus " , ",", FoldChangeCol)
-        }
-
-	FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
-	#print(head(FoldChangeMetabolic))
- 	FoldChangeMetabolic = FoldChangeMetabolic[!duplicated(FoldChangeMetabolic[,geneIDCol]),]
-	rownames(FoldChangeMetabolic) = FoldChangeMetabolic[,"geneName"]
-	
-	FoldMetab1_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner1"]),c(geneIDCol,FoldChangeCol)]
+        FoldChangeCol = grep("combined" , colnames(FoldChangeMetabolic), value=TRUE, fixed=TRUE)
+	FoldMetab1_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner1"]), c("geneName", FoldChangeCol)]
 	colnames(FoldMetab1_InPair) = c("partner1InFold","partner1_FoldChange")
-	#print(head(FoldMetab1_InPair))
 	
-	FoldMetab2_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner2"]),c(geneIDCol,FoldChangeCol)]
+	FoldMetab2_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner2"]),c("geneName", FoldChangeCol)]
 	colnames(FoldMetab2_InPair) = c("partner2InFold","partner2_FoldChange")
-	#print(head(FoldMetab2_InPair))
 
-	
 	outForPUC = cbind(outForPUC,FoldMetab1_InPair,FoldMetab2_InPair)
+	
+	
 #==================================================================================================================
 #    					calculate PUC
-	coefficientColnames = colnames(outForPUC)[grep("Coefficient",colnames(outForPUC))]                                  ############ to be fixed
-	interestedCoefficientColnames = coefficientColnames[sapply(dataName,grep,coefficientColnames)]
-	#print(interestedCoefficientColnames)
-	#print (head(outForPUC))
-        #quit()
-	#error
-	interestedCorrelationData = outForPUC[,interestedCoefficientColnames]
-	# calculate correlation Direction For correlation coefficient of interest
-	interestedCorrelationData = as.matrix(interestedCorrelationData)
+
+        
+        # calculate correlation Direction For correlation coefficient of interest
+	interestedCoefficientColnames = grep("Coefficient",colnames(outForPUC), value=TRUE, fixed=TRUE)     
+	print(interestedCoefficientColnames)
+	interestedCorrelationData = outForPUC[,interestedCoefficientColnames, drop=FALSE]
 	interestedCorrelationData = apply(interestedCorrelationData,2,function(x){as.numeric(as.vector(x))})
-	#print(dim(interestedCorrelationData))
-	#error
 	signOfInterestedCorrelationData = interestedCorrelationData/abs(interestedCorrelationData)					# forOutput
 	rownames(signOfInterestedCorrelationData) = c()
 	colnames(signOfInterestedCorrelationData) = paste(colnames(interestedCorrelationData),"correlationDirection",sep=".")
-
-        #print(signOfInterestedCorrelationData)
-	# see if direction match in interest
-	ifMatch = apply(signOfInterestedCorrelationData,1
-					,function(tt){
-								if (length(tt)==1){
-									return (1)
-								}
-								if (length(tt[!is.na(tt)])<2){
-									return (NA)
-								}
-								uniqueValues = unique(tt[!is.na(tt)])
-								NumberOfUniqueValues = length(uniqueValues)
-								if (NumberOfUniqueValues>1){
-									return (0)
-								}else if(NumberOfUniqueValues==0){
-									return (NA)
-								}else{
-									return (1*uniqueValues[1])
-								}
-							}
-					)	# if each row of signOfInterestedCorrelationData is like -1,1,-1; if match, "ifMatch" will be 3 or -3
-
-####################### XD code below ##############################
-### is this your way of checking consistency between three datasets?
-if(FALSE){
-	# see if direction match in interest
-	ifMatch = apply(signOfInterestedCorrelationData,1
-					,function(tt){
-								uniqueValues = unique(tt[!is.na(tt)])
-								NumberOfUniqueValues = length(uniqueValues)
-								if (length(tt[!is.na(tt)])<2){
-									return (uniqueValues[1])
-								}
-								if (NumberOfUniqueValues>1){
-									return (0)
-								}else if(NumberOfUniqueValues==0){
-									return (NA)
-								}else{
-									return (1*uniqueValues[1])
-								}
-							}
-					)	# if each row of signOfInterestedCorrelationData is like -1,1,-1; if match, "ifMatch" will be 3 or -3
-
-}
-###############################################################
-
-
-
-
-	names(ifMatch) = c()
-        #print(ifMatch)  # forOutput
+	matchedExpressionDirection = signOfInterestedCorrelationData
 	
-	# calculate matched correlation direction
-	matchedExpressionDirection = ifMatch*signOfInterestedCorrelationData[,1]
-	names(matchedExpressionDirection) = c()
-	matchedExpressionDirection	= ifMatch	# forOutput	
-        #print(colnames(outForPUC))
 	# calculate fold change direction	
 	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))]
 	FoldChangeData = outForPUC[,FoldChangeColnames]
 	FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
 	names(FoldChangeDirection) = c()
+	
 	colnames(FoldChangeDirection) = paste(colnames(FoldChangeData),"FoldChangeDirection",sep=".")
-	FoldChangeDirection				## forOutput	
+		
 	# calculate if fold change direction are the same for the two partners
 	IfFoldChangeDirectionMatch = apply(FoldChangeDirection,1,prod)
 	names(IfFoldChangeDirectionMatch) = c()
-	IfFoldChangeDirectionMatch			## forOutput	
-	# use "matched correlation direction" and "if fold change direction are the same" to calculate PUC
+	colnames(matchedExpressionDirection) = c()
+	
+	# use "signOfInterestedCorrelationData" and "if fold change direction are the same" to calculate PUC
 	PUC = IfFoldChangeDirectionMatch * matchedExpressionDirection    				## forOutput	
-	outForPUC = cbind(outForPUC,signOfInterestedCorrelationData,ifMatch,matchedExpressionDirection,FoldChangeDirection,IfFoldChangeDirectionMatch,PUC)
+	outForPUC = cbind(outForPUC,signOfInterestedCorrelationData,FoldChangeDirection,IfFoldChangeDirectionMatch,PUC)
+	#print(head(outForPUC))
 
-	if(FALSE){
-	# calculate combined Pvalue for interest
-	PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
-	interestedPvalueColnames = PvalueColnames[sapply(dataName,grep,PvalueColnames)]
-	interestedPvalueData = outForPUC[,interestedPvalueColnames]
-	interestedPvalueData = as.matrix(interestedPvalueData)
-	interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
-	combinedPvalue = apply(interestedPvalueData,1
-							,function(pvalues){
-										pvalues = pvalues[!is.na(pvalues)]
-										statistics = -2*log(prod(pvalues))
-										degreeOfFreedom = 2*length(pvalues)
-										combined = 1-pchisq(statistics,degreeOfFreedom)
-									}
-							)
-	outForPUC = cbind(outForPUC,combinedPvalue)
-        }
-                
 	return(outForPUC)
 		
 } 
@@ -351,41 +340,19 @@ if(file.exists(PUCoutfile))
 
 ### at this point you have multiple datasets, which dataset to use:
 ### for (i) FC and (ii) correlation, we can use any dataset since we (i) calc. correlations only on consistent genes and (ii) calc PUC only on consistent pairs 
-### think about using median values
+### using median values
 
 ### how to get the FC values based on the analysis file?
   ### use the merged file from the check consistent genes
 
 ### use single state to calc network. Allow option to use both states if requested to identify regulatory genes?
 
+### add proper labels to the combined p value, coeff, to keep track of which is the group of interest
 
+result = forPUC(FoldChangeMetabolic)
 
-#result = forPUC(FoldChangeFile, categ1, categ2)
+#print(head(result))
 
-
-
-#for(indx in 1:nrow(AnalysToDoList)){
-if(FALSE){
-    c = as.vector(AnalysToDoList[indx,])
-    zzzz = zzzz+1
-    if(c[1] != "" && c[2] != "" && c[4] != "correlation"){
-        if(c[1] == "DUMMY" || c[2] == "DUMMY" || c[3] == "DUMMY" || c[4] == "DUMMY"){
-            next
-        }
-        print(c)
-    
-        categ1= toString(c[1,"V1"])
-        categ2= toString(c[1,"V2"])
-
-        # if the analysis is delta:
-        if(grepl("," , categ1)){
-           categ1 = gsub(",", " minus ", categ1)
-        }
-        if(grepl("," , categ2)){
-           categ2 = gsub(",", " minus ", categ2)
-        }
-
-        result = forPUC(FoldChangeFile, categ1, categ2)
 
         # calculate percentage of unexpected correlations
         print("Total items")
@@ -401,9 +368,6 @@ if(FALSE){
         PUC_Prop = paste(c("Percentage of Unexpected Correlation=" , PUC_Prop, "%") , collapse='')
        
 
-
-        #print(result[,c(3,5)])
-        #write.csv(result,paste(c(outputFile,zzzz,"output.csv"),collapse='PUC-'),row.names=FALSE,append=TRUE)
         if(file.exists(PUCoutfile)){
           out = file(PUCoutfile ,'a')
           write.csv(result, file=out, row.names=FALSE)
@@ -418,96 +382,89 @@ if(FALSE){
           close(out)
         }
 
-    }
-
-}
-file.remove("./testpair.txt")
-
 print("Done with PUC")
+
+sorted_result = result[order(result$"combinedFDR"), ]
+print(head(sorted_result))
+
+  plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
+
+
 
 
 
 ###########################################################################################################
 #generate network
 ###########################################################################################################
-data = result
+data = sorted_result
 #print(head(data))
+
+
 
 
 calc_stats = function(inNet, correlThreshold=0){
 
+        
         # if it is a single dataset it becomes a vector so adding the drop=FALSE
         # get the correlation coeff for the group of interest
-        coefficientData = inNet[,grep("Coefficient",colnames(inNet)),drop=FALSE]
-        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T),drop=FALSE]  # remove this column
-	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData)),drop=FALSE] # keep group of interest
-	        
-        #print(head(coefficientData))
-        res_pos = apply(coefficientData, 2, function(x) sum(x > correlThreshold))
-        res_neg = apply(coefficientData, 2, function(x) sum(x < correlThreshold))
+        coefficientData = inNet[,grep("correlationDirection",colnames(inNet)),drop=FALSE]
+	
+	coefficientData = apply(coefficientData,2,function(x){as.numeric(as.vector(x))})
+	
+        res_pos = apply(coefficientData, 2, function(x) sum(x == 1))
+        res_neg = apply(coefficientData, 2, function(x) sum(x == -1))
         res = cbind(res_pos, res_neg)
         print(res)
         
-        #print(head(inNet))
-
         print(paste("Total number of edges: ", nrow(inNet), collapse="")) 
 
-        setpartner1 = unique(as.vector(inNet[,"1"]))
+        setpartner1 = unique(as.vector(inNet[,"partner1"]))
         #print(length(setpartner1))
         
-        setpartner2 = unique(as.vector(inNet[,"2"]))
+        setpartner2 = unique(as.vector(inNet[,"partner2"]))
         #print(length(setpartner2))
 
         nodes = union(setpartner1, setpartner2)
         print(paste("Number of unique nodes: ", length(nodes), collapse=""))
 
 
-        edgesDistinctNodes = inNet[which(inNet$"1"!=inNet$"2"), ] 
+        edgesDistinctNodes = inNet[which(inNet[,"partner1"]!=inNet[,"partner2"]), ] 
         #print(head(edgesDistinctNodes))
         print(paste("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes), collapse=""))
 
 }
 
+
+### for a given fdr threshold, genr network
 generateNetwork = function(){
 	#generate network After Filter
 
 	# find PUC expected and significant in combinedPvalue and significant in combinedFDR
 	out = data[data[,"PUC"]==1 ,]
 	out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns
-	#print(head(out))
-	#print(dim(out))
-	out = out[(out[,"combinedFDR"]<combinedFDRCutoff)==1,]
+	
+	out = as.matrix(out)
+        #df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
+
+	
+	out = out[(as.numeric(out[,"combinedFDR"])<combinedFDRCutoff)==1,]
 	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
 	# find pvalue data
-
         # if it is a single dataset it becomes a vector so adding the drop=FALSE
 	pvalueData = out[,grep("pvalue",colnames(out)), drop=FALSE]
 	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData)), drop=FALSE]
 	
 	pvalueData = as.matrix(pvalueData)
+	pvalueData = apply(pvalueData,2,function(x){as.numeric(as.vector(x))})
+	
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
 	passIndevidualPvalue = apply(pvalueData,1,max)<individualPvalueCutoff
 	outNetwork = out[passIndevidualPvalue,]
-
-        outNetwork$names<-rownames(outNetwork)
-        splt = str_split_fixed(outNetwork$names, "<-->", 2)
-        outNetwork = cbind(outNetwork, splt)
         
-        # select the group of interest
-        coefficientData = outNetwork[,grep("Coefficient",colnames(outNetwork)), drop=FALSE]
-        coefficientData = coefficientData[,grep("correlationDirection",colnames(coefficientData), invert=T), drop=FALSE]  # remove this column
-	coefficientData = coefficientData[,grep(search_group,colnames(coefficientData)), drop=FALSE] # keep group of interest
-	
-	# check consistency only if more than one dataset
-	print(ncol(coefficientData))
-	if(ncol(coefficientData) > 1){
-            res = checkConsistency_across_expts(coefficientData, "Coefficient", total_numb_input_files)
-            #print(res)
-
-            resvec = as.vector(unlist(res))
-            #print(resvec)
-            outNetwork = outNetwork[resvec,]
-        }
+        #outNetwork$names<-rownames(outNetwork)
+        #splt = str_split_fixed(outNetwork$names, "<==>", 2)
+        #outNetwork = cbind(outNetwork, splt)
+        
 	write.csv (outNetwork,networkFile)
 
         calc_stats(outNetwork)
