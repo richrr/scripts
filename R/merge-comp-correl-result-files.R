@@ -289,7 +289,7 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
 #dput(result_dumper, file = paste(outputFile,"dump_consistent_output.csv",sep='-'))
 #print(length(result_dumper))
 #------------------------------------------------------------------
-outputFile = paste(outputFile,"consistent_across_expts_output.csv",sep='-')
+outputFile1 = paste(outputFile,"consistent_across_expts_output.csv",sep='-')
 strr = '' 
 for(i in 1:length(result_dumper)){
     p_elem = result_dumper[[i]]
@@ -305,7 +305,7 @@ for(i in 1:length(result_dumper)){
     }
     strr = paste(strr, l_strr, sep='\n')   
 }
-write(strr, file=outputFile)
+write(strr, file=outputFile1)
 
 
 #------------------------------------------------------------------
@@ -427,7 +427,7 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
 #------------------------------------------------------------------
 # Check which measurement ("gene") (or pairs) show same trends in multiple aspects of analysis across expts: same direction of comparison (or correlation) and sig pval across expts
 #------------------------------------------------------------------
-outputFile = paste(outputFile,"consistent_across_expts_and_analysis_output.csv",sep='-')
+outputFile2 = paste(outputFile,"consistent_across_expts_and_analysis_output.csv",sep='-')
 analys_processed = 1
 consis_strr = '' 
 
@@ -482,13 +482,17 @@ while(analys_processed < length(result_dumper)){
     } 
 }
 print(consis_strr)
-write(consis_strr, file=outputFile)
+write(consis_strr, file=outputFile2)
+
+finaloutputFile = paste(c(outputFile,  "pval", pvalThreshold ,"corr", correlThreshold, "foldch", foldchThreshold, "consistent_results.csv"), collapse='_')
+write(gsub(",", "\n", consis_strr), file=finaloutputFile)
+
 
 if(argv$warnings){print(warnings())}
 
 print("Finished performing the requested analyses.")
 
-print("You may want to run calc-PUC or generate-network.R next.")
+print("You may want to run create-network.R next.")
 
 
 

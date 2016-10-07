@@ -74,6 +74,13 @@ list2File = argv$lists[2]
 
 outputFile = argv$output
 
+# create if outdir doesn't exist:
+odir =  strsplit(outputFile, "/")[[1]]
+odir = paste(odir[1:(length(odir) -1)], collapse='/')
+print(odir)
+dir.create(odir, recursive = TRUE)
+
+
 split= argv$split
 NumberOfSplit= argv$numberofsplit
 
@@ -689,6 +696,7 @@ forPUC = function(FoldChangeFile, categ1, categ2){
 								}
 							}
 					)	# if each row of signOfInterestedCorrelationData is like -1,1,-1; if match, "ifMatch" will be 3 or -3
+
 	names(ifMatch) = c()
         #print(ifMatch)  # forOutput
 	
