@@ -31,7 +31,7 @@ library(corpcor)
 library(reshape)
 
 # load the functions from a different file to keep code neater
-source("/nfs1/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-functs.R")
+source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-functs.R")
 
 
 

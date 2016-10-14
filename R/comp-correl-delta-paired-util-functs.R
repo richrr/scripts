@@ -501,7 +501,7 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
     n<<- n+1
     cat (n)
     cat (":\t")
-    calculating = paste(lgene, c2, "vs" , c1, sep=" ___ ")
+    calculating = paste(lgene, c1, "vs" , c2, sep=" ___ ")
     cat (calculating)
     cat ("\n")
 

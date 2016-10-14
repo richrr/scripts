@@ -214,11 +214,12 @@ if(!is.na(argv$correlation)){
     #print(head(inFileCorrData))
 
     # selecting only the pvalue columns
-    subset_data = inFileCorrData[, grep("pvalue", colnames(inFileCorrData))]
+    subset_data = inFileCorrData[, grep("pvalue", colnames(inFileCorrData)), drop=FALSE]
     # unselect comparisons of delta or normal correlations
-    subset_data = subset_data[, grep(" vs ", colnames(subset_data), invert=TRUE)]
+    subset_data = subset_data[, grep(" vs ", colnames(subset_data), invert=TRUE), drop=FALSE]
     # unselect comparisons of timelag correlations
-    subset_data = subset_data[, grep(" timelag ", colnames(subset_data), invert=TRUE)]
+    #print(head(subset_data))
+    subset_data = subset_data[, grep(" timelag ", colnames(subset_data), invert=TRUE), drop=FALSE]
     #print(head(subset_data))
 
     for(column  in 1:ncol(subset_data)){
@@ -274,7 +275,9 @@ if(!is.na(argv$correlation)){
        }
 
        #jpeg('rplot.jpg') 
-       png(paste(categ_name , '.png' , sep='')) 
+       #png(paste(categ_name , '.png' , sep=''), width=1000, height=1200) 
+       pdf(paste(categ_name , '.pdf' , sep=''), width=10, height=20) 
+
 
        if(total_numb_sig_pairs>1){
 
@@ -291,6 +294,8 @@ if(!is.na(argv$correlation)){
          par(mfrow=c(1,1))
        }
 
+       # sets the margin sizes in the following order: bottom, left, top, and right. default c(5.1, 4.1, 4.1, 2.1)
+       #par(mar=c(1.1, 1.1, 1.1, 1.1)) # reduces margins
        
        for(r in 1: total_numb_sig_pairs){
            #print("Row number")
