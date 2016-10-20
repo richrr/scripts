@@ -164,6 +164,54 @@ if(argv$pvals){
           }
 }
 
+#------------------------------------------------------------------
+# calculates the combined fisher p value for each gene for each comparison
+# it does not care about the gene being consistent in either FC dir or pval significance. 
+# calcs. FDR. Of course once you keep consistent genes, you may have to recalc fdr but NOT combined pvalue
+#------------------------------------------------------------------
+if(TRUE){
+
+  cols_processed = 1
+  comb_merged_df = data.frame(matrix(NA, nrow = nrow(merged_df), ncol = 2)) # ceate dataframe of "NA" columns
+  rownames(comb_merged_df) = rownames(merged_df)
+  
+  while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps of (number of input files)
+  {
+      subset_df = merged_df[,cols_processed:(cols_processed+total_numb_input_files-1)]
+      cols_processed = cols_processed + total_numb_input_files
+      comb_merged_df = cbind(comb_merged_df, subset_df)
+      
+      if(grepl("pvalue", colnames(subset_df)[1])){
+
+          outForPUC = subset_df
+          # calculate combined Pvalue for interest group
+          PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
+          total_numb_input_files = length(PvalueColnames)
+          interestedPvalueData = outForPUC[,PvalueColnames]
+          interestedPvalueData = as.matrix(interestedPvalueData)
+          interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+          combinedPvalue = apply(interestedPvalueData,1
+							,function(pvalues){
+										pvalues = pvalues[!is.na(pvalues)]
+										statistics = -2*log(prod(pvalues))
+										degreeOfFreedom = 2*length(pvalues)
+										combined = 1-pchisq(statistics,degreeOfFreedom)
+									}
+							)
+	   #calculate FDR for combined pvalue
+           combinedFDR = p.adjust(combinedPvalue,method="fdr")
+  
+
+           comb_merged_df = cbind(comb_merged_df,combinedPvalue,combinedFDR)
+
+      } # end if for p value
+   }
+   comb_merged_df = comb_merged_df[,-c(1,2)] # remove the tmp "NA" column added during initialization
+   outputFile1 = paste(outputFile,"output.csv",sep='-comb-pval-')
+   write.csv(as.data.frame(comb_merged_df), outputFile1)
+
+
+}
 
 #------------------------------------------------------------------
 # check which measurement ("gene") or pairs have the same trend across experiments
