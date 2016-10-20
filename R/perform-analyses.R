@@ -258,14 +258,43 @@ expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]
 rownames(expressionData) = expressionData[,symbleColumnName]
 
 
-#==================================================================================================================
-# check if all genes from partners file are present in the expression data. This is especially to check typos or different cases ("ABX" vs "Abx")
-#==================================================================================================================
-if(length(setdiff(genes1, as.vector(expressionData[,symbleColumnName]))) > 0 || length(setdiff(genes2, as.vector(expressionData[,symbleColumnName]))) > 0 ){
-    cat("\n\nThe following ids in the partners file are not present in the expression file\n")
-    print(setdiff(genes1, as.vector(expressionData[,symbleColumnName])))
-    quit()
+
+# which elements from list1 are not present in list2
+checkDiffInputs = function(list1, list2, search, inn){
+    diff = setdiff(list1, list2)
+    if(length(diff) > 0){
+           strr = paste("\n\nThe following ids in the", search ,"file are not present in the", inn, "file\n", sep=' ')
+           cat(strr)
+           print(diff)
+           quit()
+    }
+    #return(diff)
 }
+
+
+#==================================================================================================================
+# check if all ids from the different files are consistent. This is especially to check typos or different cases ("ABX" vs "Abx")
+#==================================================================================================================
+# partners file and expt file to check gene name
+checkDiffInputs(genes1, as.vector(expressionData[,symbleColumnName]), "partners", "expression")
+checkDiffInputs(genes2, as.vector(expressionData[,symbleColumnName]), "partners", "expression")
+
+# mapping file and expt file to check sample name
+checkDiffInputs(as.vector(mapFile[, samplIdCol]), as.vector(colnames(expressionData)), "mapping", "expression")
+
+# analysis file and mapping file to check group names
+tmp_a1 = sort(as.vector(AnalysToDoList[,1]))
+tmp_a2 = sort(as.vector(AnalysToDoList[,2]))
+tmp_a12 = unique(sort(append(tmp_a1, tmp_a2)))
+
+# elements contain ','
+csv_tmp_a12 = grep("," , tmp_a12, value = TRUE)
+# split based on ','
+no_csv_tmp_a12 = unlist(strsplit(csv_tmp_a12, ','))
+# remove elements with ',' and replace with the vector obtained by splitting on ','
+uniq_analys_elems = append(setdiff( tmp_a12, csv_tmp_a12 ), no_csv_tmp_a12) 
+
+checkDiffInputs(unique(uniq_analys_elems[uniq_analys_elems != ""]), as.vector(mapFile[, exptCol]), "analysis", "mapping")
 
 
 
