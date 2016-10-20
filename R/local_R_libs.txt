@@ -25,3 +25,5 @@ install.packages('psych', repos="http://cran.r-project.org")
 install.packages('gtools', repos="http://cran.r-project.org")
 install.packages('corpcor', repos="http://cran.r-project.org")
 
+on cgrb
+install.packages('ggplot2', dependencies=TRUE, repos='http://cran.rstudio.com/')

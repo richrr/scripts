@@ -512,8 +512,8 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
     #print(typeof(c1))
     #print(class(c1))
 
-    print(c1)
-    print(c2)
+    #print(c1)
+    #print(c2)
         
     c1 =  numericizeVector(c1) 
     print(c1)
@@ -537,6 +537,7 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
         mean_c2 = mean(c2, na.rm=TRUE)
     } 
 
+    #quit()
     fold_change = NA
 
     if(sum(!is.na(c1)) < 3 || sum(!is.na(c2)) < 3){
