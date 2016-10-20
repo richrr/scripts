@@ -253,9 +253,19 @@ if(!argv$noCorrelationsRequested){
 #==================================================================================================================
 # load expression data
 #==================================================================================================================
-expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA", "NaN"))
+expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA", "Na", "NaN"))
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
+
+
+#==================================================================================================================
+# check if all genes from partners file are present in the expression data. This is especially to check typos or different cases ("ABX" vs "Abx")
+#==================================================================================================================
+if(length(setdiff(genes1, as.vector(expressionData[,symbleColumnName]))) > 0 || length(setdiff(genes2, as.vector(expressionData[,symbleColumnName]))) > 0 ){
+    cat("\n\nThe following ids in the partners file are not present in the expression file\n")
+    print(setdiff(genes1, as.vector(expressionData[,symbleColumnName])))
+    quit()
+}
 
 
 
