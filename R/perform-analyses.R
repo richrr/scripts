@@ -262,6 +262,7 @@ rownames(expressionData) = expressionData[,symbleColumnName]
 # which elements from list1 are not present in list2
 checkDiffInputs = function(list1, list2, search, inn){
     diff = setdiff(list1, list2)
+    diff = diff[!diff %in% c('DUMMY')]  # remove known tmp values
     if(length(diff) > 0){
            strr = paste("\n\nThe following ids in the", search ,"file are not present in the", inn, "file\n", sep=' ')
            cat(strr)
