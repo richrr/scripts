@@ -27,3 +27,5 @@ install.packages('corpcor', repos="http://cran.r-project.org")
 
 on cgrb
 install.packages('ggplot2', dependencies=TRUE, repos='http://cran.rstudio.com/')
+
+install.packages('ggfortify', repos='http://cran.rstudio.com/')
