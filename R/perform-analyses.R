@@ -352,7 +352,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         } # end else
 
         # calculate fold change
-        FolCh =  calcFC(outEachExperiment[,2],outEachExperiment[,3])
+        FolCh =  calcFC(outEachExperiment[,5],outEachExperiment[,6]) # median to calc FC
         FolCh = t(rbind(outEachExperiment[,1], t(FolCh)))
         colnames(FolCh) = c(colnames(outEachExperiment)[1],paste(categ1,"vs",categ2,"FoldChange",sep=" "))
 
@@ -396,8 +396,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         } # end else
 
         # calculate fold change
-        FolCh =  calcFC(outEachExperiment[,2],outEachExperiment[,3])
-        FolCh = t(rbind(outEachExperiment[,1], t(FolCh)))
+        FolCh = outEachExperiment[,c(1,7)]
         colnames(FolCh) = c(colnames(outEachExperiment)[1],paste(categA,"vs",categB,"FoldChange",sep=" "))
 
         if (length(folchout)==0){
@@ -427,7 +426,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         } # end else
 
         # calculate fold change
-        FolCh =  calcFC(outEachExperiment[,2],outEachExperiment[,3])
+        FolCh =  calcFC(outEachExperiment[,5],outEachExperiment[,6]) # median to calc FC
         FolCh = t(rbind(outEachExperiment[,1], t(FolCh)))
         colnames(FolCh) = c(colnames(outEachExperiment)[1],paste(categ1,"vs",categ2,"FoldChange",sep=" "))
 
