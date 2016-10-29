@@ -33,7 +33,9 @@ p <- add_argument(p, "--majority", help="the element is consistent across MAJORI
 p <- add_argument(p, "--correlThreshold", help="correlThreshold", default=0, type="numeric")
 p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.05, type="numeric")
 p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, type="numeric")
+
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
+p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
 
 
  
@@ -57,6 +59,12 @@ correlThreshold = argv$correlThreshold
 pvalThreshold = argv$pvalThreshold
 foldchThreshold = argv$foldchThreshold
 
+
+
+foldchVar = 'FolChMedian'
+if(argv$foldchMean){foldchVar = "FoldChange"}
+
+outputFile = paste(outputFile , foldchVar, '_', sep='')
 
 # number of columns
 max_numb_cols = 0
@@ -260,7 +268,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         #list_rows_passing_consistency[[1]] = rows_passing_consistency
         list_rows_passing_consistency$PvalThresh = rows_passing_consistency
 
-    } else if(condition == "FoldChange"){
+    } else if(condition == foldchVar){
         res_pos = apply(s_df, 1, function(x) sum(x > foldchThreshold))
         res_neg = apply(s_df, 1, function(x) sum(x < foldchThreshold))
         rows_passing_consistency = c()
@@ -318,10 +326,10 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
        
-   } else if(grepl("FoldChange", colnames(subset_df)[1])){
+   } else if(grepl(foldchVar, colnames(subset_df)[1])){
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "FoldChange", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+       out_res = append(out_res, checkConsistency_across_expts(subset_df, foldchVar, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -408,6 +416,7 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
         quit() 
     } 
     
+    
     names_elem1 = names(lengths(p_elem1)[-1])
     #print(p_elem1[[names_elem1[1]]])   
     names_elem2 = names(lengths(p_elem2)[-1])
@@ -417,6 +426,13 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
     analysis_names = paste(paste(analy_name_c_elem1, collapse=',') , paste(analy_name_c_elem2, collapse=',') , sep='\nAND\n')
        
     l_strr = paste('\n', analysis_names, sep='')
+    
+    #print("THE LENGTH IS")
+    #print(length(res))
+    
+    # this happens when the fold change is not consistent but p value is
+    if(length(res) == 0){ res = list(NULL) }
+    
     for(x in 1:length(res)){ # number of child elements (e.g. names, pval, pcorr, ncorr, upreg, dwnreg, etc.)
         consis_elem = res[[x]]
         if(length(consis_elem) > 0){
@@ -489,7 +505,7 @@ while(analys_processed < length(result_dumper)){
     analy_name_c_elem2 = elem2[[1]] # this returns a vector of all the elements in the child element "name"
 
     # contains foldchange
-    res_foldch = lapply(analy_name_c_elem1, function(x) grepl("FoldChange", x))
+    res_foldch = lapply(analy_name_c_elem1, function(x) grepl(foldchVar, x))
     # contains coefficient
     res_coeff = lapply(analy_name_c_elem1, function(x) grepl("Coefficient", x))
     # contains pvalue
