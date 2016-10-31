@@ -36,6 +36,7 @@ p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, typ
 
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
+p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
 
 
  
@@ -131,6 +132,11 @@ if(!argv$parallel){
    outputFile = paste(outputFile,"output.csv",sep='merged-parallel-')
    write.csv(as.data.frame(para_df), outputFile, row.names=FALSE)
 
+   if(argv$transposeOutput){
+       #outputFile_tr = paste(outputFile,"transposed.csv",sep='-')
+       #write.csv(t(as.data.frame(para_df)), outputFile_tr, col.names=FALSE)
+   }
+
 
 }
 
@@ -217,6 +223,12 @@ if(TRUE){
    comb_merged_df = comb_merged_df[,-c(1,2)] # remove the tmp "NA" column added during initialization
    outputFile1 = paste(outputFile,"output.csv",sep='-comb-pval-')
    write.csv(as.data.frame(comb_merged_df), outputFile1)
+   
+   if(argv$transposeOutput){
+       outputFile_tr = paste(outputFile1,"transposed.csv",sep='-')
+       write.csv(t(as.data.frame(comb_merged_df)), outputFile_tr, col.names=FALSE)
+   }
+
 
 
 }
