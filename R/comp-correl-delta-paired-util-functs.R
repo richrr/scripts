@@ -562,7 +562,9 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
           outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
         }
     } else if(pairedd == "paired"){
-        fold_change = mean_c1/mean_c2
+        fold_change_mean = mean_c1/mean_c2
+        fold_change_median = median_c1/median_c2
+        
         if(comparMethod == 'tt'){
           p = t.test(c1,c2,paired=TRUE)
           outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
