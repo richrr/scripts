@@ -106,8 +106,13 @@ CalcNDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c3 = numericizeVector(as.vector(edata[pair[2], idxs1]))
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
-    ca = c1-c2
-    cb = c3-c4
+    # calculate delta 
+    #ca = c1-c2
+    #cb = c3-c4
+
+    # calculate delta normalized to starting value
+    ca = (c1-c2)/c2
+    cb = (c3-c4)/c4
 
     # number of non-na samples
     N = sum(!is.na(ca+cb))
@@ -413,8 +418,13 @@ CalcDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c3 = numericizeVector(as.vector(edata[pair[2], idxs1]))
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
-    ca = c1-c2
-    cb = c3-c4
+    # calculate delta 
+    #ca = c1-c2
+    #cb = c3-c4
+
+    # calculate delta normalized to starting value
+    ca = (c1-c2)/c2
+    cb = (c3-c4)/c4
 
     outLine = ''
     # there are less than 3 samples with values (i.e. without NA)
@@ -899,8 +909,12 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     c4 = numericizeVector(as.vector(edata[lgene, idxs4]))
 
     # calculate delta
-    ca = c1-c2
-    cb = c3-c4
+    #ca = c1-c2
+    #cb = c3-c4
+
+    # calculate delta normalized to starting value
+    ca = (c1-c2)/c2
+    cb = (c3-c4)/c4
 
     # calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
     ca_fc = c1/c2
@@ -986,7 +1000,7 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
 #	  7. the dictionary containing mapping of category and samples which belong to it
 #         8. method for comparison (t test, Man Whitney, etc.)
 # output : 
-#	a table containing gene information, means in c1-c2 and c3-c4,pvalue,fdr
+#	a table containing gene information, means & medians of normalized deltas for (c1-c2)/c2 and (c3-c4)/c4, fold change ((c1/c2):(c3/c4)), pvalue,fdr
 
 calculateComparisonDelta = function (lgenes, expressionData, c1, c2, c3, c4, dict, comparMethod, indxg){
     # calculate for each gene
