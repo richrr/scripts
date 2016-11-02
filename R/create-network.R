@@ -21,6 +21,9 @@ p <- add_argument(p, "--indivPvalCutoff", help="individualPvalueCutoff", default
 p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") # 0.05
 p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.3, type="numeric") # 
 
+p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
+#p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
+
 
 argv <- parse_args(p)
 #print (p)
@@ -39,6 +42,11 @@ combinedPvalueCutoff = argv$combPvalCutoff
 combinedFDRCutoff = argv$combFDRCutoff
 FoldChangeFile = argv$foldchange
 search_group = argv$group
+
+foldchVar = 'FolChMedian'
+if(argv$foldchMean){foldchVar = "FoldChange"}
+outputFile = paste(outputFile , foldchVar, '_', sep='')
+
 
 networkFile = paste(c(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
 
@@ -167,15 +175,14 @@ calc_PUC_at_thresholds = function(df){
    # calculate median FoldChange
    FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
    FoldChangeMetabolic = remove_redundant_columns(FoldChangeMetabolic, total_numb_input_files)
-   FoldChangeColnames = colnames(FoldChangeMetabolic)[grep("FoldChange",colnames(FoldChangeMetabolic))]
+   FoldChangeColnames = colnames(FoldChangeMetabolic)[grep(foldchVar,colnames(FoldChangeMetabolic))]
    interestedFoldChangeData = FoldChangeMetabolic[,FoldChangeColnames]
    interestedFoldChangeData = as.matrix(interestedFoldChangeData)
    interestedFoldChangeData = apply(interestedFoldChangeData,2,function(x){as.numeric(as.vector(x))})
    combinedFoldChange = apply(interestedFoldChangeData,1, function(x){median(x, na.rm = TRUE)})
    FoldChangeMetabolic$geneName = rownames(FoldChangeMetabolic)
    FoldChangeMetabolic = cbind(FoldChangeMetabolic,combinedFoldChange)
-
-
+   
 
 ###########################################################################################################
 #calc PUC
@@ -223,13 +230,15 @@ forPUC = function(FoldChangeMetabolic){
 	colnames(signOfInterestedCorrelationData) = paste(colnames(interestedCorrelationData),"correlationDirection",sep=".")
 	matchedExpressionDirection = signOfInterestedCorrelationData
 	
+	
+
 	# calculate fold change direction for each partner
-	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))]
+	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
 	FoldChangeData = outForPUC[,FoldChangeColnames]
 	FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
 	names(FoldChangeDirection) = c()
 	colnames(FoldChangeDirection) = paste(colnames(FoldChangeData),"FoldChangeDirection",sep=".")
-		
+	
 	# calculate if fold change direction are the same for the two partners
 	IfFoldChangeDirectionMatch = apply(FoldChangeDirection,1,prod)
 	names(IfFoldChangeDirectionMatch) = c()
@@ -238,7 +247,7 @@ forPUC = function(FoldChangeMetabolic){
 	# use "matchedExpressionDirection" and "IfFoldChangeDirectionMatch" to calc PUC, i.e. if these two are the same PUC=1 (good)
 	PUC = IfFoldChangeDirectionMatch * matchedExpressionDirection 
 	outForPUC = cbind(outForPUC,signOfInterestedCorrelationData,FoldChangeDirection,IfFoldChangeDirectionMatch,PUC)
-
+        
 	return(outForPUC)
 		
 } 
