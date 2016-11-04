@@ -11,7 +11,7 @@ library(stringr)
 # parameters
 #==================================================================================================================
 p <- arg_parser('Extract pairs which pass the FDR and PUC criteria across datasets for a single correlation (group)')
-p <- add_argument(p, "--file", help="file which has PUC information", nargs=1) # required; but written as optional format so I explicitly mention the "--file"
+p <- add_argument(p, "--file", help="file which has merged correlations from multiple expts", nargs=1) # required; but written as optional format so I explicitly mention the "--file"
 p <- add_argument(p, "--consistent", help="file which has list of consistent elements (mostly pairs)", nargs=1) # required; but written as optional format so I explicitly mention the "--consistent"
 p <- add_argument(p, "--group", help="use the correlation for 'group'. Generate the network for this group") # required; but written as optional format so I explicitly mention the arg
 #p <- add_argument(p, "--groups", help="use the correlations for 'groups'. Calc. PUC using both these groups (states). Default only uses one state as mentioned in --group", nargs=2) # not implemented
@@ -23,6 +23,8 @@ p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.3, t
 
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
 #p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
+
+p <- add_argument(p, "--noPUC", help="do not calc. PUC, so you do not need to use fold change", flag=TRUE) 
 
 
 argv <- parse_args(p)
@@ -46,6 +48,8 @@ search_group = argv$group
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
 outputFile = paste(outputFile , foldchVar, '_', sep='')
+
+noPUC = argv$noPUC
 
 
 networkFile = paste(c(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
@@ -173,6 +177,10 @@ calc_PUC_at_thresholds = function(df){
    
  
    # calculate median FoldChange
+   FoldChangeMetabolic =  ''
+   if(noPUC){
+           # no need to loop up the fold change
+        } else {
    FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
    FoldChangeMetabolic = remove_redundant_columns(FoldChangeMetabolic, total_numb_input_files)
    FoldChangeColnames = colnames(FoldChangeMetabolic)[grep(foldchVar,colnames(FoldChangeMetabolic))]
@@ -182,7 +190,7 @@ calc_PUC_at_thresholds = function(df){
    combinedFoldChange = apply(interestedFoldChangeData,1, function(x){median(x, na.rm = TRUE)})
    FoldChangeMetabolic$geneName = rownames(FoldChangeMetabolic)
    FoldChangeMetabolic = cbind(FoldChangeMetabolic,combinedFoldChange)
-   
+   }
 
 ###########################################################################################################
 #calc PUC
@@ -192,7 +200,7 @@ calc_PUC_at_thresholds = function(df){
 #--------------------------------------------------------------------------------
 # calculate PUC
 #--------------------------------------------------------------------------------
-forPUC = function(FoldChangeMetabolic){
+forPUC = function(FoldChangeMetabolic,noPUC){
 
 	#change out format to partner1 partner2 for PUC
 	row_names_Data = rownames(Data)
@@ -211,6 +219,9 @@ forPUC = function(FoldChangeMetabolic){
            
         outForPUC = outForPUC[,g_grep_cols]
         
+        if(noPUC){
+           # no need to loop up the fold change
+        } else {
         # attach the foldChange information for each partner
         FoldChangeCol = grep("combined" , colnames(FoldChangeMetabolic), value=TRUE, fixed=TRUE)
 	FoldMetab1_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner1"]), c("geneName", FoldChangeCol)]
@@ -219,9 +230,11 @@ forPUC = function(FoldChangeMetabolic){
 	colnames(FoldMetab2_InPair) = c("partner2InFold","partner2_FoldChange")
 
 	outForPUC = cbind(outForPUC,FoldMetab1_InPair,FoldMetab2_InPair)
+	}
 	
-        # calculate correlation Direction For correlation coefficient of interest
-	interestedCoefficientColnames = grep("Coefficient",colnames(outForPUC), value=TRUE, fixed=TRUE)     
+        # calculate correlation Direction For combined correlation coefficient of interest 
+        # at this point we only have the consistent pairs left, so the value of combined corr coeff is ok to use
+        interestedCoefficientColnames = grep("Coefficient",colnames(outForPUC), value=TRUE, fixed=TRUE)     
 	print(interestedCoefficientColnames)
 	interestedCorrelationData = outForPUC[,interestedCoefficientColnames, drop=FALSE]
 	interestedCorrelationData = apply(interestedCorrelationData,2,function(x){as.numeric(as.vector(x))})
@@ -231,7 +244,10 @@ forPUC = function(FoldChangeMetabolic){
 	matchedExpressionDirection = signOfInterestedCorrelationData
 	
 	
-
+        if(noPUC){
+           # no need to loop up the fold change direction
+           outForPUC = cbind(outForPUC,signOfInterestedCorrelationData)
+        } else {
 	# calculate fold change direction for each partner
 	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
 	FoldChangeData = outForPUC[,FoldChangeColnames]
@@ -247,12 +263,18 @@ forPUC = function(FoldChangeMetabolic){
 	# use "matchedExpressionDirection" and "IfFoldChangeDirectionMatch" to calc PUC, i.e. if these two are the same PUC=1 (good)
 	PUC = IfFoldChangeDirectionMatch * matchedExpressionDirection 
 	outForPUC = cbind(outForPUC,signOfInterestedCorrelationData,FoldChangeDirection,IfFoldChangeDirectionMatch,PUC)
+        }
         
 	return(outForPUC)
 		
 } 
 
-    PUCoutfile = paste(outputFile, search_group, "PUC-output.csv",sep='-')
+    PUCoutfile = ''
+    if(noPUC){
+           PUCoutfile = paste(outputFile, search_group, "noPUC-output.csv",sep='-')
+    } else {
+         PUCoutfile = paste(outputFile, search_group, "PUC-output.csv",sep='-')
+    }
 
     if(file.exists(PUCoutfile))
     {
@@ -260,7 +282,12 @@ forPUC = function(FoldChangeMetabolic){
         file.remove(PUCoutfile)
     }
 
-    result = forPUC(FoldChangeMetabolic)
+    result = forPUC(FoldChangeMetabolic,noPUC)
+    data = result
+    
+    if(noPUC){
+           # no need to calc stats
+    } else {
 
     # calculate percentage of unexpected correlations in the entire file
     print("Total items")
@@ -296,14 +323,15 @@ forPUC = function(FoldChangeMetabolic){
     sorted_result = result[order(result$"combinedFDR"), ]
     plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
 
-
+    data = sorted_result
+    }
 
 
 
 ###########################################################################################################
 #generate network
 ###########################################################################################################
-    data = sorted_result
+
 
 #----------------------------------------------------------------------
 # calc stats of the generated network
@@ -341,15 +369,22 @@ calc_stats = function(inNet, correlThreshold=0){
 
 
 #----------------------------------------------------------------------
-# for a given fdr threshold, generate network
+# for a given combinedPvalue and combinedfdr threshold, generate network
 #----------------------------------------------------------------------
 generateNetwork = function(){
-	#generate network After Filter
+       #generate network After Filter
 
-	# find PUC expected and significant in combinedPvalue and significant in combinedFDR
-	out = data[data[,"PUC"]==1 ,]
-	out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns
-	
+       out = ''
+       if(noPUC){
+	    # at this point you only have pairs with consistent correlations 
+	    out = data
+	    #out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns  # decide whether to use this combinedCoefficient.correlationDirection
+        } else {
+	    # find PUC expected
+	    out = data[data[,"PUC"]==1 ,]
+	    out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns
+        }
+
 	out = as.matrix(out)
         #df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
 
@@ -376,6 +411,7 @@ generateNetwork = function(){
 
         calc_stats(outNetwork)
 
+        print("Done!")
 }
 
 
