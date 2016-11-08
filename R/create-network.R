@@ -165,7 +165,7 @@ calc_PUC_at_thresholds = function(df){
    interestedCoefficientData = outForPUC[,CoefficientColnames]
    interestedCoefficientData = as.matrix(interestedCoefficientData)
    interestedCoefficientData = apply(interestedCoefficientData,2,function(x){as.numeric(as.vector(x))})
-   combinedCoefficient = apply(interestedCoefficientData,1, function(x){median(x, na.rm = TRUE)})
+   combinedCoefficient = apply(interestedCoefficientData,1, function(x){round(median(x, na.rm = TRUE), 3)})
    outForPUC = cbind(outForPUC,combinedCoefficient)
 
    result = outForPUC 
@@ -187,7 +187,7 @@ calc_PUC_at_thresholds = function(df){
    interestedFoldChangeData = FoldChangeMetabolic[,FoldChangeColnames]
    interestedFoldChangeData = as.matrix(interestedFoldChangeData)
    interestedFoldChangeData = apply(interestedFoldChangeData,2,function(x){as.numeric(as.vector(x))})
-   combinedFoldChange = apply(interestedFoldChangeData,1, function(x){median(x, na.rm = TRUE)})
+   combinedFoldChange = apply(interestedFoldChangeData,1, function(x){round(median(x, na.rm = TRUE), 3)})
    FoldChangeMetabolic$geneName = rownames(FoldChangeMetabolic)
    FoldChangeMetabolic = cbind(FoldChangeMetabolic,combinedFoldChange)
    }
@@ -407,7 +407,7 @@ generateNetwork = function(){
         #splt = str_split_fixed(outNetwork$names, "<==>", 2)
         #outNetwork = cbind(outNetwork, splt)
         
-	write.csv (outNetwork,networkFile)
+	write.csv (outNetwork,networkFile, quote=FALSE)
 
         calc_stats(outNetwork)
 
