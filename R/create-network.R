@@ -26,6 +26,9 @@ p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE
 
 p <- add_argument(p, "--noPUC", help="do not calc. PUC, so you do not need to use fold change", flag=TRUE) 
 
+p <- add_argument(p, "--analysisfc", help="Partial header (Analysis number) to be used for median fold change calc", default="ALL") #e.g. "Analys 1 " ; avoids cutting the required columns as input for the script
+    # make sure there is space after the number to avoid selecting analysis 11, etc.
+
 
 argv <- parse_args(p)
 #print (p)
@@ -45,12 +48,13 @@ combinedFDRCutoff = argv$combFDRCutoff
 FoldChangeFile = argv$foldchange
 search_group = argv$group
 
+
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
 outputFile = paste(outputFile , foldchVar, '_', sep='')
 
 noPUC = argv$noPUC
-
+analysisfc = argv$analysisfc
 
 networkFile = paste(c(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
 
@@ -184,6 +188,12 @@ calc_PUC_at_thresholds = function(df){
    FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
    FoldChangeMetabolic = remove_redundant_columns(FoldChangeMetabolic, total_numb_input_files)
    FoldChangeColnames = colnames(FoldChangeMetabolic)[grep(foldchVar,colnames(FoldChangeMetabolic))]
+   # if an Analysis number is specified then select only that analysis number
+   if(analysisfc != "ALL"){
+       FoldChangeColnames = FoldChangeColnames[grep(analysisfc,FoldChangeColnames)]
+   }
+   #print(FoldChangeColnames)
+
    interestedFoldChangeData = FoldChangeMetabolic[,FoldChangeColnames]
    interestedFoldChangeData = as.matrix(interestedFoldChangeData)
    interestedFoldChangeData = apply(interestedFoldChangeData,2,function(x){as.numeric(as.vector(x))})
