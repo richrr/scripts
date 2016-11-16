@@ -107,12 +107,12 @@ CalcNDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
     # calculate delta 
-    ca = c1-c2
-    cb = c3-c4
+    #ca = c1-c2
+    #cb = c3-c4
 
     # calculate delta normalized to starting value
-    #ca = (c1-c2)/c2
-    #cb = (c3-c4)/c4
+    ca = (c1-c2)/c2
+    cb = (c3-c4)/c4
 
     # number of non-na samples
     N = sum(!is.na(ca+cb))
@@ -419,12 +419,12 @@ CalcDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
     # calculate delta 
-    ca = c1-c2
-    cb = c3-c4
+    #ca = c1-c2
+    #cb = c3-c4
 
     # calculate delta normalized to starting value
-    #ca = (c1-c2)/c2
-    #cb = (c3-c4)/c4
+    ca = (c1-c2)/c2
+    cb = (c3-c4)/c4
 
     outLine = ''
     # there are less than 3 samples with values (i.e. without NA)
