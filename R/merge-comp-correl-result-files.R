@@ -87,11 +87,43 @@ for( numb in 1:length(argv$files)){
 }
 
 
+#------------------------------------
+# keep only the common rows since only they can be consistent
+#------------------------------------
+all_present_rows = ''
+for(file in 1:length(df)){
+    rown = df[[file]][1]
+    #print(typeof(rown))
+    #print(class(rown))
+
+    if(file == 1)
+      {
+         all_present_rows = rown
+      }
+    else
+    {
+        all_present_rows = merge(all_present_rows, rown)
+    }
+    
+}
+print(paste(c("Using", nrow(all_present_rows), "common", "rows"), collapse=' '))
+#print(head(all_present_rows))
+
+# keep only the common rows present in all files
+intersect_rows_df = list()
+for(file in 1:length(df)){
+    mergd_df = merge(all_present_rows, df[[file]])
+    intersect_rows_df[[file]] = mergd_df
+}
+
+
+df = intersect_rows_df
 
 # add this arg in name of output file
 if(argv$pvals){
 outputFile = paste(outputFile, "only-pvals-", sep = '_')
 }
+
 
 #------------------------------------------------------------------
 # merge the files:
