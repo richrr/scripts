@@ -26,8 +26,9 @@ p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE
 
 p <- add_argument(p, "--noPUC", help="do not calc. PUC, so you do not need to use fold change", flag=TRUE) 
 
-p <- add_argument(p, "--analysisfc", help="Partial header (Analysis number) to be used for median fold change calc", default="ALL") #e.g. "Analys 1 " ; avoids cutting the required columns as input for the script
-    # make sure there is space after the number to avoid selecting analysis 11, etc.
+p <- add_argument(p, "--analysisfc", help="Partial header (Analysis number) to be used for median fold change calc", default="ALL") #e.g. "Analys 1 " ; avoids cutting the required columns as input for the script  # make sure there is space after the number to avoid selecting analysis 11, etc.
+
+p <- add_argument(p, "--analysiscorr", help="Partial header (Analysis number) to be used for selecting the columns for combined pval and median correlations", default="ALL") #e.g. "Analys 1 " ; avoids cutting the required columns as input for the script   # make sure there is space after the number to avoid selecting analysis 11, etc.
 
 
 argv <- parse_args(p)
@@ -55,6 +56,12 @@ outputFile = paste(outputFile , foldchVar, '_', sep='')
 
 noPUC = argv$noPUC
 analysisfc = argv$analysisfc
+analysiscorr = argv$analysiscorr
+
+if(analysisfc != "ALL" || analysiscorr != "ALL"){
+  outputFile = paste(outputFile , "FC", analysisfc, "Corr", analysiscorr, '_', sep='')
+  outputFile = gsub(' ', '_', outputFile)
+}
 
 networkFile = paste(c(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
 
@@ -146,6 +153,14 @@ calc_PUC_at_thresholds = function(df){
 
    outForPUC = subdata
    
+   CorrAnalysColnames = colnames(outForPUC)
+   # only keep the requested analysis number
+   if(analysiscorr != "ALL"){
+       CorrAnalysColnames = CorrAnalysColnames[grep(analysiscorr,CorrAnalysColnames)]
+   }
+   print(CorrAnalysColnames)
+   outForPUC = outForPUC[,CorrAnalysColnames]
+   
    # calculate combined Pvalue for interest group
    PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
    PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
@@ -171,7 +186,7 @@ calc_PUC_at_thresholds = function(df){
    interestedCoefficientData = apply(interestedCoefficientData,2,function(x){as.numeric(as.vector(x))})
    combinedCoefficient = apply(interestedCoefficientData,1, function(x){round(median(x, na.rm = TRUE), 3)})
    outForPUC = cbind(outForPUC,combinedCoefficient)
-
+   
    result = outForPUC 
    #calculate FDR for combined pvalue
    combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
