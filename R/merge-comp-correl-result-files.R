@@ -180,6 +180,64 @@ if(argv$pvals){
 }
 
 
+
+#------------------------------------------------------------------
+# calculates the combined fisher p value for each gene for each comparison
+#------------------------------------------------------------------
+calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile){
+
+  cols_processed = 1
+  comb_in_df = data.frame(matrix(NA, nrow = nrow(in_df), ncol = 2)) # ceate dataframe of "NA" columns
+  rownames(comb_in_df) = rownames(in_df)
+  
+  while(cols_processed < ncol(in_df))  # loop over the merged dataset in steps of (number of input files)
+  {
+      subset_df = in_df[,cols_processed:(cols_processed+total_numb_input_files-1)]
+      cols_processed = cols_processed + total_numb_input_files
+      comb_in_df = cbind(comb_in_df, subset_df)
+      
+      
+      if(grepl("pvalue", colnames(subset_df)[1])){
+
+          outForPUC = subset_df
+          # calculate combined Pvalue for interest group
+          PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
+          total_numb_input_files = length(PvalueColnames)
+          interestedPvalueData = outForPUC[,PvalueColnames]
+          #print(interestedPvalueData)
+          interestedPvalueData = as.matrix(interestedPvalueData)
+          interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+          combinedPvalue = apply(interestedPvalueData,1
+							,function(pvalues){
+										pvalues = pvalues[!is.na(pvalues)]
+										statistics = -2*log(prod(pvalues))
+										degreeOfFreedom = 2*length(pvalues)
+										combined = 1-pchisq(statistics,degreeOfFreedom)
+									}
+							)
+	   #calculate FDR for combined pvalue
+           combinedFDR = p.adjust(combinedPvalue,method="fdr")
+  
+
+           comb_in_df = cbind(comb_in_df,combinedPvalue,combinedFDR)
+
+      } # end if for p value
+   }
+   comb_in_df = comb_in_df[,-c(1,2)] # remove the tmp "NA" column added during initialization
+   outputFile1 = paste(l_outputFile,"output.csv",sep='-comb-pval-')
+   write.csv(as.data.frame(comb_in_df), outputFile1)
+   
+   if(argv$transposeOutput){
+       outputFile_tr = paste(outputFile1,"transposed.csv",sep='-')
+       write.csv(t(as.data.frame(comb_in_df)), outputFile_tr, col.names=FALSE)
+   }
+
+
+
+}
+
+
+
 #------------------------------------------------------------------
 # re-read the merged file as a dataframe 
 #------------------------------------------------------------------
@@ -210,60 +268,15 @@ if(argv$pvals){
           }
 }
 
+
 #------------------------------------------------------------------
 # calculates the combined fisher p value for each gene for each comparison
 # it does not care about the gene being consistent in either FC dir or pval significance. 
 # calcs. FDR. Of course once you keep consistent genes, you may have to recalc fdr but NOT combined pvalue
 #------------------------------------------------------------------
-if(TRUE){
-
-  cols_processed = 1
-  comb_merged_df = data.frame(matrix(NA, nrow = nrow(merged_df), ncol = 2)) # ceate dataframe of "NA" columns
-  rownames(comb_merged_df) = rownames(merged_df)
-  
-  while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps of (number of input files)
-  {
-      subset_df = merged_df[,cols_processed:(cols_processed+total_numb_input_files-1)]
-      cols_processed = cols_processed + total_numb_input_files
-      comb_merged_df = cbind(comb_merged_df, subset_df)
-      
-      if(grepl("pvalue", colnames(subset_df)[1])){
-
-          outForPUC = subset_df
-          # calculate combined Pvalue for interest group
-          PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
-          total_numb_input_files = length(PvalueColnames)
-          interestedPvalueData = outForPUC[,PvalueColnames]
-          interestedPvalueData = as.matrix(interestedPvalueData)
-          interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
-          combinedPvalue = apply(interestedPvalueData,1
-							,function(pvalues){
-										pvalues = pvalues[!is.na(pvalues)]
-										statistics = -2*log(prod(pvalues))
-										degreeOfFreedom = 2*length(pvalues)
-										combined = 1-pchisq(statistics,degreeOfFreedom)
-									}
-							)
-	   #calculate FDR for combined pvalue
-           combinedFDR = p.adjust(combinedPvalue,method="fdr")
-  
-
-           comb_merged_df = cbind(comb_merged_df,combinedPvalue,combinedFDR)
-
-      } # end if for p value
-   }
-   comb_merged_df = comb_merged_df[,-c(1,2)] # remove the tmp "NA" column added during initialization
-   outputFile1 = paste(outputFile,"output.csv",sep='-comb-pval-')
-   write.csv(as.data.frame(comb_merged_df), outputFile1)
-   
-   if(argv$transposeOutput){
-       outputFile_tr = paste(outputFile1,"transposed.csv",sep='-')
-       write.csv(t(as.data.frame(comb_merged_df)), outputFile_tr, col.names=FALSE)
-   }
+calc_comb_pval_fdr(merged_df, total_numb_input_files, outputFile)
 
 
-
-}
 
 #------------------------------------------------------------------
 # check which measurement ("gene") or pairs have the same trend across experiments
@@ -442,9 +455,34 @@ extract_common_vals_3_vectors = function(names, searchIn1, searchIn2, searchThes
 
 
 #------------------------------------------------------------------
-# Identify which "genes" or "pairs" are present in FC/Coeff and pvalue
+# Calc comb p val and fdr for consistent genes/pairs (based on FC/Coeff and pvalue) per analysis 
 #------------------------------------------------------------------
-SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2){
+CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df){
+
+  analyses = paste(c("Analys ", l_strr, " "), collapse='')
+  
+  #print(analyses)
+  #print(consis_elem)
+  
+  #print(rownames(merged_df))
+  select_analys_cols = grep(analyses, colnames(merged_df), value=T)
+  
+  tmp_out_df = merged_df[consis_elem, select_analys_cols]
+  #print(tmp_out_df)
+  
+  o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(analyses, "csv", sep='.'))
+  
+  calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr)
+
+}
+
+
+
+#------------------------------------------------------------------
+# Identify which "genes" or "pairs" are present in FC/Coeff and pvalue
+# the last method arg runs the combined pval and fdr output per analysis code for only the genes and not for correlations
+#------------------------------------------------------------------
+SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2, merged_df, isFCanalys){
 
     # this returns the analysis number    
     res1=lapply(analy_name_c_elem1, find_analysis_number)
@@ -468,17 +506,28 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
     
     res=lapply(names_elem1, extract_common_vals, p_elem1, p_elem2[[names_elem2[1]]])
     analysis_names = paste(paste(analy_name_c_elem1, collapse=',') , paste(analy_name_c_elem2, collapse=',') , sep='\nAND\n')
-       
+    
     l_strr = paste('\n', analysis_names, sep='')
     
     #print("THE LENGTH IS")
     #print(length(res))
+    
+    #print(res)
     
     # this happens when the fold change is not consistent but p value is
     if(length(res) == 0){ res = list(NULL) }
     
     for(x in 1:length(res)){ # number of child elements (e.g. names, pval, pcorr, ncorr, upreg, dwnreg, etc.)
         consis_elem = res[[x]]
+        if(length(consis_elem) > 0){
+            #print(consis_elem)
+            if(isFCanalys == 'FC'){
+            # this part is useful to calc. comb FDR on only the consistent genes
+                CalcCombPvalFdrPerAnalysis(union(res1, res2), consis_elem, merged_df)
+            }
+        }
+    
+
         if(length(consis_elem) > 0){
           l_strr = paste(l_strr, paste(consis_elem, collapse=',') , sep='\n')
         }
@@ -532,6 +581,8 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
 }
 
 
+
+
 #------------------------------------------------------------------
 # Check which measurement ("gene") (or pairs) show same trends in multiple aspects of analysis across expts: same direction of comparison (or correlation) and sig pval across expts
 #------------------------------------------------------------------
@@ -564,13 +615,13 @@ while(analys_processed < length(result_dumper)){
             analys_processed = analys_processed + 1 # do nothing and go to next
     } else if(identical(unique(res_coeff) , unique(res_pvalu))){
         # correlation coeff and pvalue
-        l_strr = SameDirectionAndPvalue(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2)
+        l_strr = SameDirectionAndPvalue(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2, merged_df, "")
         consis_strr = paste(consis_strr, l_strr, sep='\n')
         analys_processed = analys_processed + 2 # coefficient and pvalue   
     } else if(identical(unique(res_foldch) , unique(res_pvalu)) && unique(res_foldch)[1] == "TRUE" ){  
         # because in the compare correl, the first condition is satisfied (FALSE=FALSE) but not second 
         # foldch and pvalue
-        l_strr = SameDirectionAndPvalue(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2)
+        l_strr = SameDirectionAndPvalue(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2, merged_df, "FC")
         consis_strr = paste(consis_strr, l_strr, sep='\n')
         analys_processed = analys_processed + 2 # foldch and pvalue   
     } else { 
