@@ -254,6 +254,11 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, apply
        new.data <- comb_in_df[comb_in_df$"combinedPvalue" < combinedPvalueCutoff  &  comb_in_df$"combinedFDR" < combinedFDRCutoff, ]
        #new.data <- subset(as.data.frame(comb_in_df), "combinedPvalue" < combinedPvalueCutoff  &  "combinedFDR" < combinedFDRCutoff)
        write.csv(new.data, outputFile_tr)
+       
+       # this prints only the row names incase you want to use this for calc correl of only these genes
+       out_vec = rownames(new.data)
+       write(out_vec, paste(outputFile_tr, "consis_genes.csv", sep='.'))
+       
    }
 
 
