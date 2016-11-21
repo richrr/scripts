@@ -31,8 +31,14 @@ p <- add_argument(p, "--majority", help="the element is consistent across MAJORI
      # this is not a problem if you use the default of consistent across ALL datasets
 # thresholds to check consistency
 p <- add_argument(p, "--correlThreshold", help="correlThreshold", default=0, type="numeric")
-p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.05, type="numeric")
+p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.05, type="numeric") # individual Pvalue Cutoff
 p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, type="numeric")
+
+# use these only in case of genes (not pairs)
+p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") 
+p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.2, type="numeric") 
+
+
 
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
@@ -60,6 +66,13 @@ correlThreshold = argv$correlThreshold
 pvalThreshold = argv$pvalThreshold
 foldchThreshold = argv$foldchThreshold
 
+combinedPvalueCutoff = argv$combPvalCutoff
+combinedFDRCutoff = argv$combFDRCutoff
+
+# create if outdir doesn't exist:
+res_directory = paste(c("./p", pvalThreshold, "/"), collapse='')
+dir.create(paste(res_directory, "per_analysis", sep=''), recursive = TRUE)
+outputFile = paste(res_directory, outputFile, sep='')
 
 
 foldchVar = 'FolChMedian'
@@ -183,8 +196,9 @@ if(argv$pvals){
 
 #------------------------------------------------------------------
 # calculates the combined fisher p value for each gene for each comparison
+# the last arg lets you control whether to apply the combined pvalue and fdr cutoff to the results
 #------------------------------------------------------------------
-calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile){
+calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, applyCombCutoff = FALSE){
 
   cols_processed = 1
   comb_in_df = data.frame(matrix(NA, nrow = nrow(in_df), ncol = 2)) # ceate dataframe of "NA" columns
@@ -232,6 +246,15 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile){
        write.csv(t(as.data.frame(comb_in_df)), outputFile_tr, col.names=FALSE)
    }
 
+   # apply the cutoff
+   if(applyCombCutoff){
+       outputFile_tr = paste(c(outputFile1,"combpval",combinedPvalueCutoff, "combfdr",combinedFDRCutoff,"cutoff.csv"),collapse='.')
+       #print(head(as.data.frame(comb_in_df)))
+       #quit()
+       new.data <- comb_in_df[comb_in_df$"combinedPvalue" < combinedPvalueCutoff  &  comb_in_df$"combinedFDR" < combinedFDRCutoff, ]
+       #new.data <- subset(as.data.frame(comb_in_df), "combinedPvalue" < combinedPvalueCutoff  &  "combinedFDR" < combinedFDRCutoff)
+       write.csv(new.data, outputFile_tr)
+   }
 
 
 }
@@ -461,18 +484,21 @@ CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df){
 
   analyses = paste(c("Analys ", l_strr, " "), collapse='')
   
+  # paste(c(res_directory, "per_analysis/","Analys ", l_strr, " "), collapse='')
   #print(analyses)
-  #print(consis_elem)
+  #print(length(consis_elem))
   
   #print(rownames(merged_df))
+  
   select_analys_cols = grep(analyses, colnames(merged_df), value=T)
   
   tmp_out_df = merged_df[consis_elem, select_analys_cols]
-  #print(tmp_out_df)
+  #print(nrow(tmp_out_df))
   
-  o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(analyses, "csv", sep='.'))
+  o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(res_directory, "per_analysis/",analyses, paste(c("-p", pvalThreshold), collapse=''), "-consis.csv", sep=''))
   
-  calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr)
+  calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, TRUE)
+  
 
 }
 
@@ -516,15 +542,14 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
     
     # this happens when the fold change is not consistent but p value is
     if(length(res) == 0){ res = list(NULL) }
-    
+
+    all_consis_elements = c()    # this compiles the conistent upreg and dwnreg (or pos and neg pairs) before sending them to calc comb fdr
     for(x in 1:length(res)){ # number of child elements (e.g. names, pval, pcorr, ncorr, upreg, dwnreg, etc.)
         consis_elem = res[[x]]
         if(length(consis_elem) > 0){
-            #print(consis_elem)
-            if(isFCanalys == 'FC'){
-            # this part is useful to calc. comb FDR on only the consistent genes
-                CalcCombPvalFdrPerAnalysis(union(res1, res2), consis_elem, merged_df)
-            }
+            #print(length(consis_elem))
+            all_consis_elements = c(all_consis_elements, consis_elem)
+            #print(length(all_consis_elements))
         }
     
 
@@ -532,6 +557,12 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
           l_strr = paste(l_strr, paste(consis_elem, collapse=',') , sep='\n')
         }
     }
+    
+    if(isFCanalys == 'FC'){
+    # this part is useful to calc. comb FDR on only the consistent genes
+        CalcCombPvalFdrPerAnalysis(union(res1, res2), all_consis_elements, merged_df)
+    }
+
     return(l_strr)
 
 }
@@ -640,6 +671,8 @@ while(analys_processed < length(result_dumper)){
         }  
     } 
 }
+
+
 print(consis_strr)
 write(consis_strr, file=outputFile2)
 
