@@ -31,12 +31,12 @@ p <- add_argument(p, "--majority", help="the element is consistent across MAJORI
      # this is not a problem if you use the default of consistent across ALL datasets
 # thresholds to check consistency
 p <- add_argument(p, "--correlThreshold", help="correlThreshold", default=0, type="numeric")
-p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.05, type="numeric") # individual Pvalue Cutoff
+p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.03, type="numeric") # individual Pvalue Cutoff
 p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, type="numeric")
 
 # use these only in case of genes (not pairs)
-p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") 
-p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.2, type="numeric") 
+p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.05, type="numeric") 
+p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.1, type="numeric") 
 
 
 
