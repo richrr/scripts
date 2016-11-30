@@ -243,7 +243,7 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, apply
    
    if(argv$transposeOutput){
        outputFile_tr = paste(outputFile1,"transposed.csv",sep='-')
-       write.csv(t(as.data.frame(comb_in_df)), outputFile_tr, col.names=FALSE)
+       write.csv(t(as.data.frame(comb_in_df)), outputFile_tr) #, col.names=FALSE) # since the col.names is ignored anyways but unnecessarily throws a warning about it
    }
 
    # apply the cutoff
