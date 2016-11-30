@@ -91,12 +91,12 @@ if(args[4] == "serial"){
 		    
 		    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
 		    
-		    out_df = rbind(out_df, data.frame(p , median_pval, median_coeff))
+		    out_df = rbind(out_df, data.frame(p , median_coeff, median_pval))
 		    
 		    
 		    
 		}
-		colnames(out_df) = c(uniq_col_name, paste(analys, "pvalue", sep='') , paste(analys, metric_col, sep=''))
+		colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
 		#print(out_df)
 		final_out_df = merge(final_out_df , out_df)
 	}
@@ -159,12 +159,12 @@ if(args[4] == "serial"){
 		    
 		    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
 		    
-		    res = data.frame(p , median_pval, median_coeff)
+		    res = data.frame(p , median_coeff, median_pval)
 		    res
 		    
 		}
 
-		colnames(out_df) = c(uniq_col_name, paste(analys, "pvalue", sep='') , paste(analys, metric_col, sep=''))
+		colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
 		#print(out_df)
 		final_out_df = merge(final_out_df , out_df)
 	}
