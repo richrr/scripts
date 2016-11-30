@@ -54,6 +54,7 @@ if(args[4] == "serial"){
 		    df = data.frame()
 		    for (f in files){
 			lines = read.csv(f, header=T, row.names=1, check.names=F) # read file
+			print(colnames(lines))
 			selectCols = grep( analys, colnames(lines), value=T) # select the required analysis
 			df_ = lines[p, selectCols] # keep the required row and columns
 			df = rbind(df, df_)
@@ -90,7 +91,9 @@ if(args[4] == "serial"){
 		    }
 		    
 		    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
-		    
+		    #print(p)
+		    #print(median_coeff)
+		    #print(median_pval)
 		    out_df = rbind(out_df, data.frame(p , median_coeff, median_pval))
 		    
 		    
