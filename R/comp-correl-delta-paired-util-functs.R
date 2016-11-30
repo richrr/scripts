@@ -563,10 +563,17 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
         fold_change_median = median_c1/median_c2
 
         if(comparMethod == 'tt'){
-          p = t.test(c1,c2)
-          #outLine = as.matrix(c(p$method,p$estimate,p$p.value))
-          outLine = as.matrix(c(p$method,mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value))
-        }else if(comparMethod == 'mw'){
+		 # check if it works or throws an error (e.g. "data are essentially constant")
+		 obj<-try(t.test(c1,c2), silent=TRUE)
+		 if (is(obj, "try-error")) {
+		          # when error    
+		     	  outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA))     
+		 } else {
+			  p = t.test(c1,c2)
+			  #outLine = as.matrix(c(p$method,p$estimate,p$p.value))
+			  outLine = as.matrix(c(p$method,mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value))
+		  }
+        } else if(comparMethod == 'mw'){
           #p = wilcox.test(c1,c2,conf.int=T)
           p = wilcox.test(c1,c2)
           outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
@@ -576,8 +583,16 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
         fold_change_median = median_c1/median_c2
         
         if(comparMethod == 'tt'){
-          p = t.test(c1,c2,paired=TRUE)
-          outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
+		 # check if it works or throws an error (e.g. "data are essentially constant")
+		 obj<-try(t.test(c1,c2,paired=TRUE), silent=TRUE)
+		 if (is(obj, "try-error")) {
+		         # when error    
+		     	 outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA))     
+		 } else {
+		  	 p = t.test(c1,c2,paired=TRUE)
+		 	 outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) 
+		 	 # since this test does not explicitly give the means in the "estimate"
+		 }
         }else if(comparMethod == 'mw'){
           p = wilcox.test(c1,c2,paired=TRUE)
           outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
