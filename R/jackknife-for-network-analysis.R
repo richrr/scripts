@@ -79,9 +79,14 @@ for(k in levels(mapFile[, exptCol])){
     dict[k] = as.vector(mapFile[which(mapFile[,exptCol]==k), samplIdCol]) 
 }
 
+# create if outdir doesn't exist:
+dir.create('./rnd-maps/', recursive = TRUE)
+
+
 # create a string for the random mapping files
-rnd_map_file = paste(argv$mapFile, "rand", sep='.')
-rnd_map_file = gsub('../', '', rnd_map_file)
+#rnd_map_file = paste(argv$mapFile, "rand", sep='.')
+rnd_map_file = paste('./rnd-maps/', "rand", sep='')
+rnd_map_file = gsub('../', '', rnd_map_file, fixed = T)
 
 #print(dict)
 #print(length(dict))
