@@ -20,6 +20,7 @@ ofname = paste(c("median-across-jackknife", patt, analys_to_do), collapse='_')
 
 files = list.files(path = path, pattern = patt, recursive = T)
 
+
 # get the pairs from any file
 fi = read.csv(files[1], header=T, check.names=F)
 pairs = as.vector(fi[,uniq_col_name])
@@ -45,16 +46,23 @@ if(args[4] == "serial"){
 	colnames(final_out_df) = c(uniq_col_name)
 
 	for(a in analys_to_do){
-
+                #print(a)
+                #quit()
 		analys = paste("Analys ", a, " ", sep='')
+
+                # extract the correct column names from the first file
+                tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
+                tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
+		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
+		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
+
+
 		out_df = data.frame()
 		for (p in pairs){
-
-		    print(p)
 		    df = data.frame()
 		    for (f in files){
 			lines = read.csv(f, header=T, row.names=1, check.names=F) # read file
-			print(colnames(lines))
+			#print(colnames(lines))
 			selectCols = grep( analys, colnames(lines), value=T) # select the required analysis
 			df_ = lines[p, selectCols] # keep the required row and columns
 			df = rbind(df, df_)
@@ -75,43 +83,68 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
-		    median_coeff = NA
-		    if( l != u){
-			#print(l)
-			#print(u)
-			v1 = NA
-			v2 = NA
-			if(l > 0) {v1 = sorted_df[,coeff_or_fc_col][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
-			if(u > 0) {v2 = sorted_df[,coeff_or_fc_col][u]}
-			#print(v1)
-			#print(v2)
-			median_coeff = (v1+v2)/2.0
-		    } else {
-			median_coeff = sorted_df[,coeff_or_fc_col][l]
+                    # in case there is single fc or correlation column
+                    if(length(coeff_or_fc_col) == 1){  
+	    		    median_coeff = NA
+			    if( l != u){
+				#print(l)
+				#print(u)
+				v1 = NA
+				v2 = NA
+				if(l > 0) {v1 = sorted_df[,coeff_or_fc_col][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
+				if(u > 0) {v2 = sorted_df[,coeff_or_fc_col][u]}
+				#print(v1)
+				#print(v2)
+				median_coeff = (v1+v2)/2.0
+			    } else {
+				median_coeff = sorted_df[,coeff_or_fc_col][l]
+			    }
+			    
+			    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
+			    out_df = rbind(out_df, data.frame(p , median_coeff, median_pval))
+		    } else{ # in case there is more than one fc or correlation column. mainly written for compare correlations. not tested for other conditions
+			    median_coeff = data.frame("NA")
+			    for(group in coeff_or_fc_col)
+			    {
+			            median_coeff_tmp = NA
+				    if( l != u){
+					v1 = NA
+					v2 = NA
+					if(l > 0) {v1 = sorted_df[,group][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
+					if(u > 0) {v2 = sorted_df[,group][u]}
+					median_coeff_tmp = (v1+v2)/2.0					
+				    } else {
+					median_coeff_tmp = sorted_df[,group][l]
+				    }
+				    median_coeff = cbind(median_coeff, median_coeff_tmp)
+			    }
+			    median_coeff = median_coeff[, -1] # remove the temporarily added NA during intialization
+			    
+			    out_df = data.frame(p , median_coeff, median_pval)		    
+		   
 		    }
-		    
-		    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
-		    #print(p)
-		    #print(median_coeff)
-		    #print(median_pval)
-		    out_df = rbind(out_df, data.frame(p , median_coeff, median_pval))
-		    
 		    
 		    
 		}
-		colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
+		#colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
+		colnames(out_df) = c(uniq_col_name , tmp_selectmetricCols, tmp_selectpvalCols)
 		#print(out_df)
-		final_out_df = merge(final_out_df , out_df)
+		final_out_df = merge(final_out_df , out_df, by=uniq_col_name)
 	}
 	write.csv(final_out_df, paste(ofname, ".csv", sep=''), row.names=FALSE, quote=FALSE)
 } else {
 
 	library(foreach)
 	library(doParallel)
-
+        #library(doSNOW) # print output on screen
+        
+             
 	cores=detectCores()
 	cl <- makeCluster(50) # or cores[1]-1
+	#cl <- makeCluster(50, outfile="") 
+	#registerDoSNOW(cl)
 	registerDoParallel(cl)
+        
 
 	final_out_df = data.frame(pairs)
 	colnames(final_out_df) = c(uniq_col_name)
@@ -119,6 +152,12 @@ if(args[4] == "serial"){
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
+
+                # extract the correct column names from the first file
+                tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
+		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
+		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
+		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
 
 		# the BEST loop to parallelize
                 out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
@@ -145,31 +184,56 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
-		    median_coeff = NA
-		    if( l != u){
-			#print(l)
-			#print(u)
-			v1 = NA
-			v2 = NA
-			if(l > 0) {v1 = sorted_df[,coeff_or_fc_col][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
-			if(u > 0) {v2 = sorted_df[,coeff_or_fc_col][u]}
-			#print(v1)
-			#print(v2)
-			median_coeff = (v1+v2)/2.0
-		    } else {
-			median_coeff = sorted_df[,coeff_or_fc_col][l]
+                    # in case there is single fc or correlation column
+                    if(length(coeff_or_fc_col) == 1){  
+			    median_coeff = NA
+			    if( l != u){
+				#print(l)
+				#print(u)
+				v1 = NA
+				v2 = NA
+				if(l > 0) {v1 = sorted_df[,coeff_or_fc_col][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
+				if(u > 0) {v2 = sorted_df[,coeff_or_fc_col][u]}
+				#print(v1)
+				#print(v2)
+				median_coeff = (v1+v2)/2.0
+			    } else {
+				median_coeff = sorted_df[,coeff_or_fc_col][l]
+			    }
+			    
+			    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
+			    
+			    res = data.frame(p , median_coeff, median_pval)
+		    
+		    } else{ # in case there is more than one fc or correlation column. mainly written for compare correlations. not tested for other conditions
+			    median_coeff = data.frame("NA")
+			    for(group in coeff_or_fc_col)
+			    {
+			            median_coeff_tmp = NA
+				    if( l != u){
+					v1 = NA
+					v2 = NA
+					if(l > 0) {v1 = sorted_df[,group][l]} # this could happen when all the vectors in that list were NAs and so we got empty vector in sorted_df
+					if(u > 0) {v2 = sorted_df[,group][u]}
+					median_coeff_tmp = (v1+v2)/2.0					
+				    } else {
+					median_coeff_tmp = sorted_df[,group][l]
+				    }
+				    median_coeff = cbind(median_coeff, median_coeff_tmp)
+			    }
+			    median_coeff = median_coeff[, -1] # remove the temporarily added NA during intialization
+			    
+			    res = data.frame(p , median_coeff, median_pval)		    
+		   
 		    }
-		    
-		    # why do we need confidence interval? #print(t.test(sorted_df[,coeff_or_fc_col]))
-		    
-		    res = data.frame(p , median_coeff, median_pval)
 		    res
 		    
 		}
-
-		colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
+                
+		#colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
+		colnames(out_df) = c(uniq_col_name , tmp_selectmetricCols, tmp_selectpvalCols)
 		#print(out_df)
-		final_out_df = merge(final_out_df , out_df)
+		final_out_df = merge(final_out_df , out_df, by=uniq_col_name)
 	}
 	write.csv(final_out_df, paste(ofname, "-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
 

@@ -36,4 +36,6 @@ biocLite("biomaRt")
 
 
 install.packages('doParallel', repos='http://cran.rstudio.com/')
+install.packages('doSNOW', repos='http://cran.rstudio.com/')
+
 
