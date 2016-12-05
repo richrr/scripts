@@ -98,7 +98,7 @@ remove_redundant_columns = function(this_df, total_numb_input_files){
 #------------------------------------------------------------------------------------------------
 # calc PUC (%) at each FDR threshold and plot
 #------------------------------------------------------------------------------------------------
-calc_PUC_at_thresholds = function(df){
+calc_PUC_at_thresholds = function(df, str='all'){
     
     combined_fdr = c(0)
     puc_percent = c(0)
@@ -127,8 +127,8 @@ calc_PUC_at_thresholds = function(df){
     
     plt = cbind(combined_fdr, puc_percent)
     
-    pdf(paste(search_group, 'FDRvsPUC.pdf', sep='-'))
-    plot(combined_fdr, puc_percent, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2 ) 
+    pdf(paste(search_group, str, 'FDRvsPUC.pdf', sep='-'))
+    plot(combined_fdr, puc_percent, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2, ylim=c(0, 100) ) 
     #plot(plt, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2 ) 
     
     dev.off()
@@ -347,6 +347,13 @@ forPUC = function(FoldChangeMetabolic,noPUC){
     # sort as per combined fdr
     sorted_result = result[order(result$"combinedFDR"), ]
     plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
+    write.csv(plt, paste(PUCoutfile, "all-edges.csv", sep='.'), row.names=FALSE)
+
+    pos_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == 1),], "pos") # walk along fdr and calc puc at diff fdr
+    write.csv(pos_plt, paste(PUCoutfile, "pos-edges.csv", sep='.'), row.names=FALSE)
+
+    neg_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == -1),], "neg") # walk along fdr and calc puc at diff fdr
+    write.csv(neg_plt, paste(PUCoutfile, "neg-edges.csv", sep='.'), row.names=FALSE)
 
     data = sorted_result
     }
@@ -365,13 +372,21 @@ calc_stats = function(inNet, correlThreshold=0){
 
         out = file(paste(networkFile,'-stats-log.txt',sep='') ,'a')
         
+        combcoeffcol = as.vector(inNet[,"combinedCoefficient"])
+        # not sure why it behaves this way!
+        lowest_neg_corrl = min(combcoeffcol[combcoeffcol < 0])
+        highest_neg_corrl = max(combcoeffcol[combcoeffcol < 0])
+
+        lowest_pos_corrl = min(combcoeffcol[combcoeffcol > 0])
+
+        
         coefficientData = inNet[,grep("correlationDirection",colnames(inNet)),drop=FALSE]
 	coefficientData = apply(coefficientData,2,function(x){as.numeric(as.vector(x))})
         res_pos = apply(coefficientData, 2, function(x) sum(x == 1))
         res_neg = apply(coefficientData, 2, function(x) sum(x == -1))
         res = cbind(res_pos, res_neg)
         #print(res)
-               
+        
         #print(paste(c("Total number of edges: ", nrow(inNet)), collapse="")) 
 
         setpartner1 = unique(as.vector(inNet[,"partner1"]))
@@ -383,10 +398,16 @@ calc_stats = function(inNet, correlThreshold=0){
         edgesDistinctNodes = inNet[which(inNet[,"partner1"]!=inNet[,"partner2"]), ] 
         #print(paste(c("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes)), collapse=""))
 
+        write.csv(paste(c("Lowest pos corr:" , lowest_pos_corrl), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Lowest neg corr:" , lowest_neg_corrl), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Highest neg corr:" , highest_neg_corrl), collapse='') , file=out, row.names=FALSE)
+
         write.csv(paste(c("Pos corr edges:" , toString(res_pos)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Neg corr edges:" , toString(res_neg)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Ratio of Pos to Neg corr edges:" , toString(res_pos/res_neg)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Total number of edges: ", nrow(inNet)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Number of unique nodes: ", length(nodes)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Ratio of edges to nodes: ", nrow(inNet)/length(nodes)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes)), collapse='') , file=out, row.names=FALSE)
         close(out)
 
@@ -414,10 +435,11 @@ generateNetwork = function(){
         #df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
 
 	
+	out = out[(as.numeric(out[,"combinedPvalue"])<combinedPvalueCutoff)==1,]
 	out = out[(as.numeric(out[,"combinedFDR"])<combinedFDRCutoff)==1,]
 	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
 	# find pvalue data
-        # if it is a single dataset it becomes a vector so adding the drop=FALSE
+  # if it is a single dataset it becomes a vector so adding the drop=FALSE
 	pvalueData = out[,grep("pvalue",colnames(out)), drop=FALSE]
 	pvalueData = pvalueData[,grep(search_group,colnames(pvalueData)), drop=FALSE]
 	
