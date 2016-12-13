@@ -136,13 +136,13 @@ if(args[4] == "serial"){
 
 	library(foreach)
 	library(doParallel)
-        #library(doSNOW) # print output on screen
+        library(doSNOW) # print output on screen
         
              
 	cores=detectCores()
-	cl <- makeCluster(50) # or cores[1]-1
-	#cl <- makeCluster(50, outfile="") 
-	#registerDoSNOW(cl)
+	#cl <- makeCluster(50) # or cores[1]-1
+	cl <- makeCluster(50, outfile="")  # print output on screen
+	registerDoSNOW(cl) # print output on screen
 	registerDoParallel(cl)
         
 
@@ -164,10 +164,11 @@ if(args[4] == "serial"){
 		    print(p)
 		    df = data.frame()
 		    for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+		        print(f)
 			lines = read.csv(f, header=T, row.names=1, check.names=F) # read file
 			selectCols = grep( analys, colnames(lines), value=T) # select the required analysis
 			df_ = lines[p, selectCols] # keep the required row and columns
-			df = rbind(df, df_)		
+			df = rbind(df, df_)	
 		    }
 		    #print(head(df))
 		    

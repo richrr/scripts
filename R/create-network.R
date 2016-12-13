@@ -100,6 +100,7 @@ remove_redundant_columns = function(this_df, total_numb_input_files){
 #------------------------------------------------------------------------------------------------
 calc_PUC_at_thresholds = function(df, str='all'){
     
+    write.csv(df, paste("tmp", str, "csv", sep='.'))
     combined_fdr = c(0)
     puc_percent = c(0)
     df = as.matrix(df)
@@ -378,6 +379,7 @@ calc_stats = function(inNet, correlThreshold=0){
         highest_neg_corrl = max(combcoeffcol[combcoeffcol < 0])
 
         lowest_pos_corrl = min(combcoeffcol[combcoeffcol > 0])
+        highest_pos_corrl = max(combcoeffcol[combcoeffcol > 0])
 
         
         coefficientData = inNet[,grep("correlationDirection",colnames(inNet)),drop=FALSE]
@@ -399,6 +401,7 @@ calc_stats = function(inNet, correlThreshold=0){
         #print(paste(c("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes)), collapse=""))
 
         write.csv(paste(c("Lowest pos corr:" , lowest_pos_corrl), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Highest pos corr:" , highest_pos_corrl), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Lowest neg corr:" , lowest_neg_corrl), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Highest neg corr:" , highest_neg_corrl), collapse='') , file=out, row.names=FALSE)
 
