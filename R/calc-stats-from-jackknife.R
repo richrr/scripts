@@ -27,7 +27,9 @@ pairs = as.vector(fi[,uniq_col_name])
 
 
 median_indx <- function(x) {
-  x <- sort(x, na.last = NA)
+  # if you resort it here, and for some reason if the sorting does not match the input,
+  # then the indexes returned do not match with the input order
+  #x <- sort(x, na.last = NA)  
   n <- length(x)
   m <- (n+1)/2
   if (floor(m) != m) {  # when n is even
@@ -59,6 +61,7 @@ if(args[4] == "serial"){
 
 		out_df = data.frame()
 		for (p in pairs){
+		    print(p)
 		    df = data.frame()
 		    for (f in files){
 			lines = read.csv(f, header=T, row.names=1, check.names=F) # read file
@@ -148,7 +151,21 @@ if(args[4] == "serial"){
 
 	final_out_df = data.frame(pairs)
 	colnames(final_out_df) = c(uniq_col_name)
+	
+	# grab all the needed files once:
 
+	wholedf = data.frame()
+	for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+		print(f)
+		lines = read.csv(f, header=T, check.names=F) # read file
+		if(nrow(wholedf) == 0){
+		   wholedf = lines
+		} else {
+		   wholedf = rbind(wholedf, lines)
+		}
+	}
+	#print(wholedf)
+	
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
@@ -162,22 +179,35 @@ if(args[4] == "serial"){
 		# the BEST loop to parallelize
                 out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
 		    print(p)
-		    df = data.frame()
-		    for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
-		        print(f)
-			lines = read.csv(f, header=T, row.names=1, check.names=F) # read file
-			selectCols = grep( analys, colnames(lines), value=T) # select the required analysis
-			df_ = lines[p, selectCols] # keep the required row and columns
-			df = rbind(df, df_)	
-		    }
-		    #print(head(df))
 		    
+		    
+		    selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
+		    
+		    #df = wholedf[, c( uniq_col_name, selectCols)]
+		    df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
+		    #print(df)
+		    
+		    ##pdf = df[which(df[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
+		    
+		    
+		    ##print(head(pdf))
+		    ##print(dim(pdf))
+		    
+		    ######## to do ################
 		    pvalCol = grep("pvalue" , colnames(df), value=T)
+		    #print(df[,pvalCol])
 		    median_pval = median(df[,pvalCol], na.rm = T) # get the median p-value
+
+		    ##pvalRow = grep("pvalue" , rownames(pdf), value=T)
+		    ##print(head(pdf[pvalRow, , drop=F]))
 		    
+		    ##median_pval = median(pdf[pvalRow, , drop=F], na.rm = T) # get the median p-value
+		    #print(median_pval)
+
+
 		    # remove NA from ordering
 		    sorted_df = df[order(df[,pvalCol], na.last = NA),]
-		    #print(nrow(sorted_df))
+		    #print(sorted_df)
 
 		    # get the coefficient or foldchange corresponding to the median p value
 		    med_indx = median_indx(sorted_df[,pvalCol])
@@ -185,6 +215,8 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
+		    
+                    #if(FALSE){
                     # in case there is single fc or correlation column
                     if(length(coeff_or_fc_col) == 1){  
 			    median_coeff = NA
@@ -228,12 +260,14 @@ if(args[4] == "serial"){
 		   
 		    }
 		    res
-		    
+		    #}
 		}
                 
+                #print(out_df)
 		#colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
 		colnames(out_df) = c(uniq_col_name , tmp_selectmetricCols, tmp_selectpvalCols)
 		#print(out_df)
+		#print(final_out_df)
 		final_out_df = merge(final_out_df , out_df, by=uniq_col_name)
 	}
 	write.csv(final_out_df, paste(ofname, "-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
