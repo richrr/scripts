@@ -155,14 +155,21 @@ if(args[4] == "serial"){
 	# grab all the needed files once:
 
 	wholedf = data.frame()
-	for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+	#for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+	#	print(f)
+	#	lines = read.csv(f, header=T, check.names=F) # read file
+	#	if(nrow(wholedf) == 0){
+	#	   wholedf = lines
+	#	} else {
+	#	   wholedf = rbind(wholedf, lines)
+	#	}
+	#}
+
+	#for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+	wholedf = foreach(f=files, .combine=rbind) %dopar% { 
 		print(f)
 		lines = read.csv(f, header=T, check.names=F) # read file
-		if(nrow(wholedf) == 0){
-		   wholedf = lines
-		} else {
-		   wholedf = rbind(wholedf, lines)
-		}
+		lines
 	}
 	#print(wholedf)
 	
@@ -183,25 +190,12 @@ if(args[4] == "serial"){
 		    
 		    selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
 		    
-		    #df = wholedf[, c( uniq_col_name, selectCols)]
 		    df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
 		    #print(df)
 		    
-		    ##pdf = df[which(df[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
-		    
-		    
-		    ##print(head(pdf))
-		    ##print(dim(pdf))
-		    
-		    ######## to do ################
 		    pvalCol = grep("pvalue" , colnames(df), value=T)
 		    #print(df[,pvalCol])
 		    median_pval = median(df[,pvalCol], na.rm = T) # get the median p-value
-
-		    ##pvalRow = grep("pvalue" , rownames(pdf), value=T)
-		    ##print(head(pdf[pvalRow, , drop=F]))
-		    
-		    ##median_pval = median(pdf[pvalRow, , drop=F], na.rm = T) # get the median p-value
 		    #print(median_pval)
 
 
@@ -215,8 +209,8 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
+                    res = ''
 		    
-                    #if(FALSE){
                     # in case there is single fc or correlation column
                     if(length(coeff_or_fc_col) == 1){  
 			    median_coeff = NA
@@ -260,7 +254,6 @@ if(args[4] == "serial"){
 		   
 		    }
 		    res
-		    #}
 		}
                 
                 #print(out_df)
