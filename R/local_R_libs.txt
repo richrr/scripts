@@ -39,3 +39,11 @@ install.packages('doParallel', repos='http://cran.rstudio.com/')
 install.packages('doSNOW', repos='http://cran.rstudio.com/')
 
 
+source("http://bioconductor.org/biocLite.R")
+biocLite("affy")
+
+source("http://bioconductor.org/biocLite.R")
+biocLite("vsn")
+
+
+
