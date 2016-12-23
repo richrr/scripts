@@ -90,22 +90,6 @@ if(argv$pq){
 
 
 
-#####---Cyclic Loess Normalization-----####################################
-if(argv$cl){
-        print("Running Loess")
-	loess.data <- normalize.loess(data, 
-						subset=1:nrow(data), 
-						epsilon=10^-2, 
-						maxit=2, 
-						log.it=FALSE, 
-						verbose=TRUE, 
-						span=0.75, 
-						family.loess="gaussian")
-	send_to_write(loess.data, paste(outputFile, ".txt", sep='loess'))
-}
-
-
-
 #####---Contrast Normalization-----########################################
 if(argv$c){
         print("Running Contrast")
@@ -226,6 +210,22 @@ if(argv$v){
 	vsn.model <- vsn2(data)
 	vsn.data <- predict(vsn.model,data)
 	send_to_write(vsn.data, paste(outputFile, ".txt", sep='vsn'))
+}
+
+
+
+#####---Cyclic Loess Normalization-----####################################
+if(argv$cl){
+        print("Running Loess")
+	loess.data <- normalize.loess(data, 
+						subset=1:nrow(data), 
+						epsilon=10^-2, 
+						maxit=2, 
+						log.it=FALSE, 
+						verbose=TRUE, 
+						span=0.75, 
+						family.loess="gaussian")
+	send_to_write(loess.data, paste(outputFile, ".txt", sep='loess'))
 }
 
 
