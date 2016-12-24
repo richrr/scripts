@@ -12,6 +12,7 @@
 
 library(argparser)
 library(affy)
+library(data.table)
 
 #==================================================================================================================
 # parameters
@@ -25,15 +26,15 @@ p <- add_argument(p, "--symbolColumnName", help="the name of the column containi
 p <- add_argument(p, "--all", help="Run all Normalizations", flag=TRUE)
 # OR
 p <- add_argument(p, "--pq", help="Probabilistic Quotient Normalization", flag=TRUE)
-p <- add_argument(p, "--cl", help="Cyclic Loess Normalization", flag=TRUE)
-p <- add_argument(p, "--c", help="Contrast Normalization", flag=TRUE)
+p <- add_argument(p, "--cl", help="Cyclic Loess Normalization. It takes too long to run", flag=TRUE) 
+p <- add_argument(p, "--c", help="Contrast Normalization. Tends to give Error in sqrt(k)", flag=TRUE)  
 p <- add_argument(p, "--q", help="Quantile Normalization", flag=TRUE)
 p <- add_argument(p, "--lb", help="Linear Baseline Normalization", flag=TRUE)
 p <- add_argument(p, "--lw", help="Li-Wong Normalization", flag=TRUE)
 p <- add_argument(p, "--cs", help="Cubic Spline Normalization", flag=TRUE)
 p <- add_argument(p, "--a", help="Auto Scaling", flag=TRUE)
 p <- add_argument(p, "--p", help="Pareto Scaling", flag=TRUE)
-p <- add_argument(p, "--v", help="Variance Stabilization Normalization", flag=TRUE)
+p <- add_argument(p, "--v", help="Variance Stabilization Normalization. It takes long time to run", flag=TRUE)
 
 
 
@@ -46,17 +47,19 @@ symbleColumnName =  argv$symbolColumnName
 
 # set all normalization flags to TRUE
 if(argv$all){
-    print("Requested ALL normalizations!")
+    print("Requested ALL normalizations, however, not running loess and contrast normalization!")
     argv$pq = T
-    argv$cl = T
-    argv$c = T
     argv$q = T
     argv$lb = T
     argv$lw = T
     argv$cs = T
     argv$a = T
     argv$p = T
-    argv$v = T
+    argv$v = T # takes long time to run but lesser than loess
+    
+    #argv$cl = T ## takes too long
+    #argv$c = T ## tends to give Error in sqrt(k) : non-numeric argument to mathematical function in maffy.normalize
+
 }
 
 
@@ -74,7 +77,13 @@ data = data.matrix(expressionData)
 
 # output to file
 send_to_write = function(matrix, ofile, delim=','){
-    write.table(matrix, ofile, sep=delim)
+    # this keeps the header of row names empty
+    #write.table(matrix, ofile, sep=delim, col.names = NA, row.names = TRUE)
+    
+    
+    df = setDT(data.frame(matrix,check.names=F), keep.rownames = TRUE)[]
+    setnames(df, 1, symbleColumnName)
+    write.table(df, ofile, sep=delim, row.names = F)
 }
 
 
@@ -90,42 +99,17 @@ if(argv$pq){
 
 
 
-#####---Contrast Normalization-----########################################
-if(argv$c){
-        print("Running Contrast")
-	#---First adaption: Make the data matrix non-negative
-	smallvalue <- function(x, threshold=1e-11){				#threshold was chosen such that it is sufficiently smaller than the data
-		for(i in 1:length(x)){
-			if(!x[i]>0)	x[i] <- threshold
-		}
-	}
-
-	nonnegative.data=smallvalue(data)
-
-	#---Apply normalization
-	maffy.data <- maffy.normalize(nonnegative.data,
-						subset=1:nrow(nonnegative.data),
-						span=0.75,
-						verbose=TRUE,
-						family="gaussian",
-						log.it=FALSE)
-
-	#---Second adaption: Subtract 10% Quantile from each sample
-	subtract <- function(x){
-		t(t(x)-apply(x,2,quantile,0.1))
-	}
-
-	contrast.data <- subtract(maffy.data)
-	send_to_write(contrast.data, paste(outputFile, ".txt", sep='contrast'))
-}
-
-
-
 #####---Quantile Normalization-----########################################
 if(argv$q){
         print("Running Quantile")
 	normalize.quantile <- get("normalize.quantiles", en=asNamespace("affy"))
 	quantile.data <- normalize.quantile(data)
+	
+	# add row and column names
+	quantile.data = data.frame(quantile.data) 
+	row.names(quantile.data)=row.names(data) 
+	colnames(quantile.data)=colnames(data)
+	
 	send_to_write(quantile.data, paste(outputFile, ".txt", sep='quantile'))
 }
 
@@ -165,6 +149,11 @@ if(argv$lw){
 						data[,i])
 		liwong.data <- cbind(liwong.data,liwong.sample$y)
 	}
+	
+	# add column names
+	liwong.data = data.frame(liwong.data) 
+	colnames(liwong.data)=colnames(data)
+	
 	send_to_write(liwong.data, paste(outputFile, ".txt", sep='liwong'))
 }
 
@@ -176,6 +165,12 @@ if(argv$cs){
 	spline.data <- normalize.qspline(data,
 					samples=0.02,
 					target=apply(data,1,mean))
+	
+	# add row and column names
+	spline.data = data.frame(spline.data) 
+	row.names(spline.data)=row.names(data) 
+	colnames(spline.data)=colnames(data)
+	
 	send_to_write(spline.data, paste(outputFile, ".txt", sep='spline'))
 }
 
@@ -226,6 +221,37 @@ if(argv$cl){
 						span=0.75, 
 						family.loess="gaussian")
 	send_to_write(loess.data, paste(outputFile, ".txt", sep='loess'))
+}
+
+
+
+#####---Contrast Normalization-----########################################
+if(argv$c){
+        print("Running Contrast")
+	#---First adaption: Make the data matrix non-negative
+	smallvalue <- function(x, threshold=1e-11){				#threshold was chosen such that it is sufficiently smaller than the data
+		for(i in 1:length(x)){
+			if(!x[i]>0)	x[i] <- threshold
+		}
+	}
+
+	nonnegative.data=smallvalue(data)
+
+	#---Apply normalization
+	maffy.data <- maffy.normalize(nonnegative.data,
+						subset=1:nrow(nonnegative.data),
+						span=0.75,
+						verbose=TRUE,
+						family="gaussian",
+						log.it=FALSE)
+
+	#---Second adaption: Subtract 10% Quantile from each sample
+	subtract <- function(x){
+		t(t(x)-apply(x,2,quantile,0.1))
+	}
+
+	contrast.data <- subtract(maffy.data)
+	send_to_write(contrast.data, paste(outputFile, ".txt", sep='contrast'))
 }
 
 
