@@ -142,11 +142,12 @@ if(args[4] == "serial"){
         library(doSNOW) # print output on screen
         
              
-	cores=detectCores()
+	#cores=detectCores()
 	#cl <- makeCluster(50) # or cores[1]-1
+	#registerDoParallel(cl)
 	cl <- makeCluster(50, outfile="")  # print output on screen
 	registerDoSNOW(cl) # print output on screen
-	registerDoParallel(cl)
+	
         
 
 	final_out_df = data.frame(pairs)

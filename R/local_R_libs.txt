@@ -45,5 +45,43 @@ biocLite("affy")
 source("http://bioconductor.org/biocLite.R")
 biocLite("vsn")
 
+$ /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/partial-correlations/GGMridge
+install.packages('GGMridge', repos='http://cran.rstudio.com/')
+install.packages('igraph', repos='http://cran.rstudio.com/')
 
+###########################
+Error in loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]]) : 
+  namespace ‘stringr’ 0.6.2 is already loaded, but >= 1.0.0 is required
+ERROR: lazy loading failed for package ‘NMF’
+* removing ‘/raid1/home/pharmacy/rodrrich/R/NMF’
+ERROR: dependency ‘NMF’ is not available for package ‘igraph’
+* removing ‘/raid1/home/pharmacy/rodrrich/R/igraph’
 
+The downloaded source packages are in
+	‘/data/RtmpCxCxN3/downloaded_packages’
+````````````````````````````````````````````````
+
+Solution from https://github.com/renozao/NMF/issues/42
+
+I have user library v1.0.0 then system library v0.6.2
+
+> packageVersion('stringr', .libPaths()[1])
+[1] ‘1.0.0’
+> packageVersion('stringr', .libPaths()[2])
+[1] ‘0.6.2’
+
+this then works
+
+ wget http://cran.uk.r-project.org/src/contrib/NMF_0.20.6.tar.gz
+tar zxvf  NMF_0.20.6.tar.gz
+edit NMF/DESCRIPTION to remove the version dependency
+
+diff NMF/DESCRIPTION.orig NMF/DESCRIPTION
+23c23
+< Imports: graphics, stats, stringr (>= 1.0.0), digest, grid, grDevices,
+> Imports: graphics, stats, stringr, digest, grid, grDevices,
+
+R CMD INSTALL -d NMF
+all works fine and it doesn't do namespace ‘stringr’ 0.6.2 is already loaded,
+#############################
+then in R run install.packages('igraph', repos='http://cran.rstudio.com/')
