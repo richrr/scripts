@@ -1,5 +1,6 @@
 # usage: Rscript ~/Morgun_Lab/richrr/scripts/R/calc-stats-from-jackknife.R ./ corr 4,5 parallel
-
+# /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/analysis/jackknife-25-samples-comparisons/cohort1/test
+# Rscript ~/Morgun_Lab/richrr/scripts/R/calc-stats-from-jackknife.R ./ comp 1 parallel
 
 args = commandArgs(trailingOnly=TRUE)
 path = args[1]
@@ -139,7 +140,7 @@ if(args[4] == "serial"){
 
 	library(foreach)
 	library(doParallel)
-        library(doSNOW) # print output on screen
+    library(doSNOW) # print output on screen
         
              
 	#cores=detectCores()
@@ -166,33 +167,49 @@ if(args[4] == "serial"){
 	#	}
 	#}
 
-	#for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
+
+    pattrn = paste( uniq_col_name , metric_col, "pvalue" , sep='|')
+
+    #need all the information from all the files to calculate the median
 	wholedf = foreach(f=files, .combine=rbind) %dopar% { 
-		print(f)
-		lines = read.csv(f, header=T, check.names=F) # read file
-		lines
+			print(f)
+			alllines = read.csv(f, header=T, check.names=F) # read file
+			
+			selCols = grep( pattrn, colnames(alllines), value=T) # select the required cols
+			#print(selCols)
+			lines = alllines[, selCols] 
+			
+			lines
 	}
 	#print(wholedf)
+
 	
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
 
-                # extract the correct column names from the first file
-                tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
+        # extract the correct column names from the first file
+        tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
 		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
 		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
 		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
 
+
 		# the BEST loop to parallelize
-                out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
+        out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
 		    print(p)
-		    
 		    
 		    selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
 		    
 		    df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
 		    #print(df)
+		    
+		    # if you edit the wholedf (delete rows) in parallel the row numbers might be off
+		    # but it might be possible to delete the rows using the above condition instead
+		    # of using specific row numbers
+		    
+		    # alternative is create the wholedf using only the cols you need
+		    # this would save memory
 		    
 		    pvalCol = grep("pvalue" , colnames(df), value=T)
 		    #print(df[,pvalCol])
@@ -210,10 +227,10 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
-                    res = ''
+            res = ''
 		    
-                    # in case there is single fc or correlation column
-                    if(length(coeff_or_fc_col) == 1){  
+            # in case there is single fc or correlation column
+            if(length(coeff_or_fc_col) == 1){  
 			    median_coeff = NA
 			    if( l != u){
 				#print(l)
@@ -257,7 +274,7 @@ if(args[4] == "serial"){
 		    res
 		}
                 
-                #print(out_df)
+        #print(out_df)
 		#colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
 		colnames(out_df) = c(uniq_col_name , tmp_selectmetricCols, tmp_selectpvalCols)
 		#print(out_df)
