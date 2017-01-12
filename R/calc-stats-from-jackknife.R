@@ -2,6 +2,8 @@
 # /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/analysis/jackknife-25-samples-comparisons/cohort1/test
 # Rscript ~/Morgun_Lab/richrr/scripts/R/calc-stats-from-jackknife.R ./ comp 1 parallel
 
+library(data.table)
+
 args = commandArgs(trailingOnly=TRUE)
 path = args[1]
 patt = args[2]
@@ -41,6 +43,20 @@ median_indx <- function(x) {
   return(c(l,u))
 }
 
+# custom function that performs rbind, then deletes the pairs from the wholedf to reduce memory
+cfun <- function(...){
+    arguments <- list(...)
+    res = rbindlist(arguments)
+    print(res)
+
+    # delete the finished pairs from the wholedf to clear memory    
+    for(e in res$p){
+        wholedf <<- wholedf[!wholedf[, uniq_col_name] == e, ]
+    }
+
+    res
+
+}
 
 # for each analysis, for each pair, loop over the files and get the correl and pvalue
 
@@ -140,7 +156,7 @@ if(args[4] == "serial"){
 
 	library(foreach)
 	library(doParallel)
-    library(doSNOW) # print output on screen
+	library(doSNOW) # print output on screen
         
              
 	#cores=detectCores()
@@ -157,20 +173,11 @@ if(args[4] == "serial"){
 	# grab all the needed files once:
 
 	wholedf = data.frame()
-	#for (f in files){ # SHOULD NOT be parallelized since you need all the information from all the files to calculate the median
-	#	print(f)
-	#	lines = read.csv(f, header=T, check.names=F) # read file
-	#	if(nrow(wholedf) == 0){
-	#	   wholedf = lines
-	#	} else {
-	#	   wholedf = rbind(wholedf, lines)
-	#	}
-	#}
 
 
-    pattrn = paste( uniq_col_name , metric_col, "pvalue" , sep='|')
+	pattrn = paste( uniq_col_name , metric_col, "pvalue" , sep='|')
 
-    #need all the information from all the files to calculate the median
+	#need all the information from all the files to calculate the median
 	wholedf = foreach(f=files, .combine=rbind) %dopar% { 
 			print(f)
 			alllines = read.csv(f, header=T, check.names=F) # read file
@@ -182,21 +189,32 @@ if(args[4] == "serial"){
 			lines
 	}
 	#print(wholedf)
-
-	
+        
+        # sort it before you print it
+        wholedf = wholedf[with(wholedf, order(wholedf[,1])), ]
+	write.csv(wholedf, paste(ofname, "-wholedf-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
+      
+      ### read this file completely, analyze pair one by one and delete the rows every time you are done with it (longest time and reducing memory)
+      ### read this file completely, analyze pair in parallel and delete the rows every time you are done with it (not sure how multiple it works with multiple processors deleting simultaneosuly)
+          ### how about one processor deletes after the combine function
+      ### read this file in chunks to reduce memory and analyze each pair one by one (longest time, medium memory)
+      ### do not read the file, parallelize unix's grep to get the rows you want from a file (medium time, lowest memory)
+      
+	if(FALSE){
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
 
-        # extract the correct column names from the first file
-        tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
+		# extract the correct column names from the first file
+		tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
 		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
 		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
 		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
-
+                tmp_read = NULL
 
 		# the BEST loop to parallelize
-        out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
+		#out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
+		out_df = foreach(p=pairs, .combine='cfun') %dopar% { 
 		    print(p)
 		    
 		    selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
@@ -227,10 +245,10 @@ if(args[4] == "serial"){
 		    u = med_indx[2]
 		    coeff_or_fc_col = grep(metric_col , colnames(df), value=T)
 
-            res = ''
+		    res = ''
 		    
-            # in case there is single fc or correlation column
-            if(length(coeff_or_fc_col) == 1){  
+            	    # in case there is single fc or correlation column
+            	    if(length(coeff_or_fc_col) == 1){  
 			    median_coeff = NA
 			    if( l != u){
 				#print(l)
@@ -282,7 +300,7 @@ if(args[4] == "serial"){
 		final_out_df = merge(final_out_df , out_df, by=uniq_col_name)
 	}
 	write.csv(final_out_df, paste(ofname, "-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
-
+        }
 	#stop cluster
 	stopCluster(cl)
 
