@@ -231,35 +231,32 @@ if(args[4] == "serial"){
 		#out_df = foreach(p=pairs, .combine='cfun') %dopar% { 
 		    print(p)
 		    
-		    #### to do #####
-		    ### figure out what to do in case there is more than one analysis in the big file
-		    #### know which column to pick
+		    #### in case there is more than one analysis in the big file pick as per analys number
 		    
-		    # use awk and also get the first line  
+		    # use awk and also get the first line  to use as header
 		    # awk 'NR==1 || /pattern/' input.txt 
 		    # http://stackoverflow.com/questions/9969414/always-include-first-line-in-grep
-		    part1 = paste('awk', "'NR==1", '||', "/", sep=' ')
+		    part1 = paste('LC_ALL=C', 'gawk', "'NR==1", '||', "/", sep=' ')
 		    part2 = paste(part1, p, "/'", sep='')
 		    cmd=paste(part2, grepFileName, sep=' ')
 		    t1 <- system(cmd, intern = TRUE)
+		    # conver the char vector to data frame
 		    df = reshape::colsplit(t1, split=",", c(1:numbCols))
 		    colnames(df) = unlist(df[1, ]) # the first row will be the header
 		    df = df[-1, ] # drop the row that you don't need
 		    #print(df)
 		    
+		    # convert the non-name columns to numeric
 		    dfCol1 = df[,1, drop=F]		    
 		    newdf = apply(df[, -1], 2, function(x) as.numeric(x))
 		    df = cbind(dfCol1, newdf)
 		    #print(df)
 
+            # keep columns for the required analysis
 		    selectCols = grep( analys, colnames(df), value=T) # select the required analysis
 		    df = df[which(df[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
 		    
-		    # grep the line for pairs
-		    #cmd=paste("grep", p, grepFileName, sep=' ')
-		    #t1 <- system(cmd, intern = TRUE)
-		    #df = reshape::colsplit(t1, split=",", c(uniq_col_name, tmp_selectmetricCols, tmp_selectpvalCols))
-		    # OR
+		    # OR if everything was loaded in wholedf
 		    #selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
 		    #df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
 		    		    
