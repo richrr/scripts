@@ -44,6 +44,8 @@ median_indx <- function(x) {
 }
 
 # custom function that performs rbind, then deletes the pairs from the wholedf to reduce memory
+# not needed if using grep
+# this also does not work for multiple analysis, since you no longer have the columns for the next analysis
 cfun <- function(...){
     arguments <- list(...)
     res = rbindlist(arguments)
@@ -157,12 +159,12 @@ if(args[4] == "serial"){
 	library(foreach)
 	library(doParallel)
 	library(doSNOW) # print output on screen
-        
+        library(reshape)
              
 	#cores=detectCores()
 	#cl <- makeCluster(50) # or cores[1]-1
 	#registerDoParallel(cl)
-	cl <- makeCluster(50, outfile="")  # print output on screen
+	cl <- makeCluster(5, outfile="")  # print output on screen
 	registerDoSNOW(cl) # print output on screen
 	
         
@@ -192,49 +194,79 @@ if(args[4] == "serial"){
         
         # sort it before you print it
         wholedf = wholedf[with(wholedf, order(wholedf[,1])), ]
-	write.csv(wholedf, paste(ofname, "-wholedf-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
-      
+        grepFileName = paste(ofname, "-wholedf-parallel.csv", sep='')
+	write.csv(wholedf, grepFileName, row.names=FALSE, quote=FALSE)
+	rm(wholedf)  # empty the variable to reduce size
+	
+        print("Starting median calculation") 
+        
+        # 
+        cmD = paste("awk", "-F','", "'{ print NF }'" , grepFileName, '|' , 'sort', '|' , 'uniq',  sep=' ')
+        numbCols = as.integer(system(cmD, intern = TRUE))
+        print(numbCols)
+        
       ### read this file completely, analyze pair one by one and delete the rows every time you are done with it (longest time and reducing memory)
       ### read this file completely, analyze pair in parallel and delete the rows every time you are done with it (not sure how multiple it works with multiple processors deleting simultaneosuly)
           ### how about one processor deletes after the combine function
+          ### using this in memory needs Rmpi and couldn't get it to work
       ### read this file in chunks to reduce memory and analyze each pair one by one (longest time, medium memory)
       ### do not read the file, parallelize unix's grep to get the rows you want from a file (medium time, lowest memory)
+          ### this works
       
-	if(FALSE){
+	
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
 
 		# extract the correct column names from the first file
 		tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
+		
 		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
 		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
 		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
-                tmp_read = NULL
+                rm(tmp_read)
 
 		# the BEST loop to parallelize
-		#out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
-		out_df = foreach(p=pairs, .combine='cfun') %dopar% { 
+		out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
+		#out_df = foreach(p=pairs, .combine='cfun') %dopar% { 
 		    print(p)
 		    
-		    selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
+		    #### to do #####
+		    ### figure out what to do in case there is more than one analysis in the big file
+		    #### know which column to pick
 		    
-		    df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
+		    # use awk and also get the first line  
+		    # awk 'NR==1 || /pattern/' input.txt 
+		    # http://stackoverflow.com/questions/9969414/always-include-first-line-in-grep
+		    part1 = paste('awk', "'NR==1", '||', "/", sep=' ')
+		    part2 = paste(part1, p, "/'", sep='')
+		    cmd=paste(part2, grepFileName, sep=' ')
+		    t1 <- system(cmd, intern = TRUE)
+		    df = reshape::colsplit(t1, split=",", c(1:numbCols))
+		    colnames(df) = unlist(df[1, ]) # the first row will be the header
+		    df = df[-1, ] # drop the row that you don't need
 		    #print(df)
 		    
-		    # if you edit the wholedf (delete rows) in parallel the row numbers might be off
-		    # but it might be possible to delete the rows using the above condition instead
-		    # of using specific row numbers
+		    dfCol1 = df[,1, drop=F]		    
+		    newdf = apply(df[, -1], 2, function(x) as.numeric(x))
+		    df = cbind(dfCol1, newdf)
+		    #print(df)
+
+		    selectCols = grep( analys, colnames(df), value=T) # select the required analysis
+		    df = df[which(df[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
 		    
-		    # alternative is create the wholedf using only the cols you need
-		    # this would save memory
-		    
+		    # grep the line for pairs
+		    #cmd=paste("grep", p, grepFileName, sep=' ')
+		    #t1 <- system(cmd, intern = TRUE)
+		    #df = reshape::colsplit(t1, split=",", c(uniq_col_name, tmp_selectmetricCols, tmp_selectpvalCols))
+		    # OR
+		    #selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
+		    #df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
+		    		    
+		        
 		    pvalCol = grep("pvalue" , colnames(df), value=T)
-		    #print(df[,pvalCol])
 		    median_pval = median(df[,pvalCol], na.rm = T) # get the median p-value
-		    #print(median_pval)
-
-
+		    
 		    # remove NA from ordering
 		    sorted_df = df[order(df[,pvalCol], na.last = NA),]
 		    #print(sorted_df)
@@ -290,17 +322,14 @@ if(args[4] == "serial"){
 		   
 		    }
 		    res
+		    
 		}
                 
-        #print(out_df)
-		#colnames(out_df) = c(uniq_col_name , paste(analys, metric_col, sep=''), paste(analys, "pvalue", sep=''))
 		colnames(out_df) = c(uniq_col_name , tmp_selectmetricCols, tmp_selectpvalCols)
-		#print(out_df)
-		#print(final_out_df)
 		final_out_df = merge(final_out_df , out_df, by=uniq_col_name)
 	}
 	write.csv(final_out_df, paste(ofname, "-parallel.csv", sep=''), row.names=FALSE, quote=FALSE)
-        }
+        
 	#stop cluster
 	stopCluster(cl)
 
