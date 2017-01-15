@@ -164,7 +164,7 @@ if(args[4] == "serial"){
 	#cores=detectCores()
 	#cl <- makeCluster(50) # or cores[1]-1
 	#registerDoParallel(cl)
-	cl <- makeCluster(5, outfile="")  # print output on screen
+	cl <- makeCluster(50, outfile="")  # print output on screen
 	registerDoSNOW(cl) # print output on screen
 	
         
@@ -173,9 +173,10 @@ if(args[4] == "serial"){
 	colnames(final_out_df) = c(uniq_col_name)
 	
 	# grab all the needed files once:
-
+	grepFileName = paste(ofname, "-wholedf-parallel.csv", sep='')
+	
+    if(FALSE){
 	wholedf = data.frame()
-
 
 	pattrn = paste( uniq_col_name , metric_col, "pvalue" , sep='|')
 
@@ -192,18 +193,28 @@ if(args[4] == "serial"){
 	}
 	#print(wholedf)
         
-        # sort it before you print it
-        wholedf = wholedf[with(wholedf, order(wholedf[,1])), ]
-        grepFileName = paste(ofname, "-wholedf-parallel.csv", sep='')
+    # sort it before you print it
+    wholedf = wholedf[with(wholedf, order(wholedf[,1])), ]
 	write.csv(wholedf, grepFileName, row.names=FALSE, quote=FALSE)
 	rm(wholedf)  # empty the variable to reduce size
+	}
 	
-        print("Starting median calculation") 
+	# keep the header from first file for later use
+	CMD = paste('head', '-1', files[1], sep=' ')
+    HEADER <- system(CMD, intern = TRUE)
+    
+    # using cat to save time   
+	CMD = paste(c('cat', files), collapse=' ')
+	CMD = paste(CMD, '|' , 'sort', '>' , grepFileName, sep=' ')
+	CREATEFILE <- system(CMD, intern = TRUE)
+    print("Starting median calculation") 
         
-        # 
-        cmD = paste("awk", "-F','", "'{ print NF }'" , grepFileName, '|' , 'sort', '|' , 'uniq',  sep=' ')
-        numbCols = as.integer(system(cmD, intern = TRUE))
-        print(numbCols)
+    # the number of columns in this file
+    cmD = paste("awk", "-F','", "'{ print NF }'" , grepFileName, '|' , 'sort', '|' , 'uniq',  sep=' ')
+    numbCols = as.integer(system(cmD, intern = TRUE))
+    print(numbCols)
+        
+        
         
       ### read this file completely, analyze pair one by one and delete the rows every time you are done with it (longest time and reducing memory)
       ### read this file completely, analyze pair in parallel and delete the rows every time you are done with it (not sure how multiple it works with multiple processors deleting simultaneosuly)
@@ -213,7 +224,11 @@ if(args[4] == "serial"){
       ### do not read the file, parallelize unix's grep to get the rows you want from a file (medium time, lowest memory)
           ### this works
       
-	
+	  ### to do ###
+	  ## cat and sort the file instead of doing it in R. 
+	  ## sort the pairs so the search time stays same
+	  ## kill search after 1000 hits
+	  ## parallel search with sequential delete lines from file
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
@@ -224,22 +239,28 @@ if(args[4] == "serial"){
 		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
 		tmp_selectpvalCols = grep( "pvalue", tmp_selectanalyCols, value=T) # select the required pval columns
 		tmp_selectmetricCols = grep(metric_col , tmp_selectanalyCols, value=T) # select the required metric columns
-                rm(tmp_read)
+        rm(tmp_read)
 
 		# the BEST loop to parallelize
-		out_df = foreach(p=pairs, .combine=rbind) %dopar% { 
-		#out_df = foreach(p=pairs, .combine='cfun') %dopar% { 
+		out_df = foreach(p=sort(pairs), .combine=rbind) %dopar% { 
+		#out_df = foreach(p=sort(pairs), .combine='cfun') %dopar% { 
 		    print(p)
 		    
 		    #### in case there is more than one analysis in the big file pick as per analys number
 		    
-		    # use awk and also get the first line  to use as header
-		    # awk 'NR==1 || /pattern/' input.txt 
-		    # http://stackoverflow.com/questions/9969414/always-include-first-line-in-grep
-		    part1 = paste('LC_ALL=C', 'gawk', "'NR==1", '||', "/", sep=' ')
-		    part2 = paste(part1, p, "/'", sep='')
+		    ### If it takes too long might have to try fgrep. 
+		    ### http://stackoverflow.com/questions/13913014/grepping-a-huge-file-80gb-any-way-to-speed-it-up https://groups.google.com/forum/#!topic/comp.lang.awk/gngk-epT9Ug
+		    
+		    # awk '/pattern/ {print; count++; if (count=1000) exit}'
+		    # http://www.unix.com/unix-for-dummies-questions-and-answers/13324-awk-stop-after-specified-number-results.html
+		    part1 = paste('LC_ALL=C', 'gawk', "'/", sep=' ')
+		    part2 = paste(part1, p, "/ {print; count++; if (count=1000) exit}'", sep='')
 		    cmd=paste(part2, grepFileName, sep=' ')
 		    t1 <- system(cmd, intern = TRUE)
+		    
+		    # add header to the results vector
+		    t1 <- c(HEADER, t1)
+		    
 		    # conver the char vector to data frame
 		    df = reshape::colsplit(t1, split=",", c(1:numbCols))
 		    colnames(df) = unlist(df[1, ]) # the first row will be the header
