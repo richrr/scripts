@@ -8,6 +8,8 @@ args = commandArgs(trailingOnly=TRUE)
 path = args[1]
 patt = args[2]
 
+grepFileName = ''
+
 uniq_col_name = "pairName"
 metric_col = "Coefficient"
 
@@ -51,10 +53,22 @@ cfun <- function(...){
     res = rbindlist(arguments)
     #print(res)
 
-    # delete the finished pairs from the wholedf to clear memory    
+    # this increases with every process
+    #pattrn = paste(res$p, collapse='|')
+    # use the last element
+    pattrn = res$p[length(res$p)] 
+    
+    pattrn = paste("'", pattrn, "'", sep='')
+    cmd=paste('LC_ALL=C', 'egrep', "-v", pattrn , grepFileName, "> filename2 ; mv filename2", grepFileName, sep=' ')
+	#print(cmd)
+    d1 <- system(cmd, intern = TRUE)
+    
+    # delete the finished pairs from the big file to save read time    
+    # http://stackoverflow.com/questions/5410757/delete-lines-in-a-text-file-that-containing-a-specific-string
     #for(e in res$p){
-    #    wholedf <<- wholedf[!wholedf[, uniq_col_name] == e, ]
-    #}
+    #   cmd=paste('LC_ALL=C', 'grep', "-v", e , grepFileName, "> filename2 ; mv filename2", grepFileName, sep=' ')
+	#   d1 <- system(cmd, intern = TRUE)
+    # }
 
     res
 
@@ -164,7 +178,7 @@ if(args[4] == "serial"){
 	#cores=detectCores()
 	#cl <- makeCluster(50) # or cores[1]-1
 	#registerDoParallel(cl)
-	cl <- makeCluster(1, outfile="")  # print output on screen
+	cl <- makeCluster(50, outfile="")  # print output on screen
 	registerDoSNOW(cl) # print output on screen
 	
         
@@ -173,7 +187,7 @@ if(args[4] == "serial"){
 	colnames(final_out_df) = c(uniq_col_name)
 	
 	# grab all the needed files once:
-	grepFileName = paste(ofname, "-wholedf-parallel.csv", sep='')
+	grepFileName <<- paste(ofname, "-wholedf-parallel.csv", sep='')
 	
     if(FALSE){
 	wholedf = data.frame()
