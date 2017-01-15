@@ -58,8 +58,8 @@ cfun <- function(...){
     # use the last element
     pattrn = res$p[length(res$p)] 
     
-    pattrn = paste("'", pattrn, "'", sep='')
-    cmd=paste('LC_ALL=C', 'egrep', "-v", pattrn , grepFileName, "> filename2 ; mv filename2", grepFileName, sep=' ')
+    #pattrn = paste("'", pattrn, "'", sep='')
+    cmd=paste('LC_ALL=C', 'fgrep', "-v", pattrn , grepFileName, "> filename2 ; mv filename2", grepFileName, sep=' ')
 	#print(cmd)
     d1 <- system(cmd, intern = TRUE)
     
@@ -363,5 +363,9 @@ if(args[4] == "serial"){
         
 	#stop cluster
 	stopCluster(cl)
+	
+	cmd=paste('rm' , '-f', grepFileName, sep=' ')
+	#print(cmd)
+    d1 <- system(cmd, intern = TRUE)
 
 }
