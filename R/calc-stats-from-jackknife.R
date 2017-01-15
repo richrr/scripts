@@ -49,12 +49,12 @@ median_indx <- function(x) {
 cfun <- function(...){
     arguments <- list(...)
     res = rbindlist(arguments)
-    print(res)
+    #print(res)
 
     # delete the finished pairs from the wholedf to clear memory    
-    for(e in res$p){
-        wholedf <<- wholedf[!wholedf[, uniq_col_name] == e, ]
-    }
+    #for(e in res$p){
+    #    wholedf <<- wholedf[!wholedf[, uniq_col_name] == e, ]
+    #}
 
     res
 
@@ -164,7 +164,7 @@ if(args[4] == "serial"){
 	#cores=detectCores()
 	#cl <- makeCluster(50) # or cores[1]-1
 	#registerDoParallel(cl)
-	cl <- makeCluster(50, outfile="")  # print output on screen
+	cl <- makeCluster(1, outfile="")  # print output on screen
 	registerDoSNOW(cl) # print output on screen
 	
         
@@ -214,7 +214,7 @@ if(args[4] == "serial"){
     numbCols = as.integer(system(cmD, intern = TRUE))
     print(numbCols)
         
-        
+
         
       ### read this file completely, analyze pair one by one and delete the rows every time you are done with it (longest time and reducing memory)
       ### read this file completely, analyze pair in parallel and delete the rows every time you are done with it (not sure how multiple it works with multiple processors deleting simultaneosuly)
@@ -229,6 +229,7 @@ if(args[4] == "serial"){
 	  ## sort the pairs so the search time stays same
 	  ## kill search after 1000 hits
 	  ## parallel search with sequential delete lines from file
+	  ## delete LLC
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
@@ -242,37 +243,35 @@ if(args[4] == "serial"){
         rm(tmp_read)
 
 		# the BEST loop to parallelize
-		out_df = foreach(p=sort(pairs), .combine=rbind) %dopar% { 
-		#out_df = foreach(p=sort(pairs), .combine='cfun') %dopar% { 
+		#out_df = foreach(p=sort(pairs), .combine=rbind) %dopar% { 
+		out_df = foreach(p=sort(pairs), .combine='cfun') %dopar% { 
 		    print(p)
 		    
 		    #### in case there is more than one analysis in the big file pick as per analys number
 		    
-		    ### If it takes too long might have to try fgrep. 
+		    ### try fgrep to exit after 1000 matches; plus it may be faster
 		    ### http://stackoverflow.com/questions/13913014/grepping-a-huge-file-80gb-any-way-to-speed-it-up https://groups.google.com/forum/#!topic/comp.lang.awk/gngk-epT9Ug
-		    
-		    # awk '/pattern/ {print; count++; if (count=1000) exit}'
-		    # http://www.unix.com/unix-for-dummies-questions-and-answers/13324-awk-stop-after-specified-number-results.html
-		    part1 = paste('LC_ALL=C', 'gawk', "'/", sep=' ')
-		    part2 = paste(part1, p, "/ {print; count++; if (count=1000) exit}'", sep='')
-		    cmd=paste(part2, grepFileName, sep=' ')
+		    cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , grepFileName, sep=' ')
 		    t1 <- system(cmd, intern = TRUE)
 		    
 		    # add header to the results vector
 		    t1 <- c(HEADER, t1)
+		    t1 <- gsub('\"', '', t1) 
+		    
 		    
 		    # conver the char vector to data frame
-		    df = reshape::colsplit(t1, split=",", c(1:numbCols))
+		    df = reshape::colsplit(t1, split=",", c(1:numbCols))  # or # #df <- data.frame(do.call(rbind, strsplit(t1, ",", fixed=TRUE)))
 		    colnames(df) = unlist(df[1, ]) # the first row will be the header
 		    df = df[-1, ] # drop the row that you don't need
-		    #print(df)
 		    
-		    # convert the non-name columns to numeric
-		    dfCol1 = df[,1, drop=F]		    
-		    newdf = apply(df[, -1], 2, function(x) as.numeric(x))
+		    # convert the non-name cols to numeric
+		    dfCol1 = as.data.frame(df[,1])
+		    colnames(dfCol1) = uniq_col_name
+		    newdf = as.data.frame(lapply(df[ , -1], function(x) as.numeric(as.character(x))), check.names=F)
 		    df = cbind(dfCol1, newdf)
 		    #print(df)
-
+		    #print(colnames(df))
+		    
             # keep columns for the required analysis
 		    selectCols = grep( analys, colnames(df), value=T) # select the required analysis
 		    df = df[which(df[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
@@ -280,7 +279,7 @@ if(args[4] == "serial"){
 		    # OR if everything was loaded in wholedf
 		    #selectCols = grep( analys, colnames(wholedf), value=T) # select the required analysis
 		    #df = wholedf[which(wholedf[, uniq_col_name] == p), c( uniq_col_name, selectCols)]
-		    		    
+	    
 		        
 		    pvalCol = grep("pvalue" , colnames(df), value=T)
 		    median_pval = median(df[,pvalCol], na.rm = T) # get the median p-value
