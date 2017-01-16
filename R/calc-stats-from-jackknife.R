@@ -10,6 +10,8 @@ patt = args[2]
 
 grepFileName = ''
 
+scratchDir = './scratch/'
+
 uniq_col_name = "pairName"
 metric_col = "Coefficient"
 
@@ -21,6 +23,12 @@ if(patt == "comp") {
 analys_to_do = unlist(strsplit(args[3], ","))
 
 ofname = paste(c("median-across-jackknife", patt, analys_to_do), collapse='_')
+
+
+
+	cmd=paste('rm' , '-rf', scratchDir, sep=' ')
+	print(cmd)
+    d1 <- system(cmd, intern = TRUE)
 
 
 files = list.files(path = path, pattern = patt, recursive = T)
@@ -227,7 +235,33 @@ if(args[4] == "serial"){
     cmD = paste("awk", "-F','", "'{ print NF }'" , grepFileName, '|' , 'sort', '|' , 'uniq',  sep=' ')
     numbCols = as.integer(system(cmD, intern = TRUE))
     print(numbCols)
-        
+    
+    
+    # create a tmp folder to split the big file into small files
+    cmd = paste('mkdir' , scratchDir , sep=' ')
+    CREATEDIR <- system(cmd, intern = TRUE)
+    cmd = paste('split -a 5 -d -l 100000', grepFileName, scratchDir, sep=' ')
+    SPLITCMD <- system(cmd, intern = TRUE)
+    
+    splitfiles = list.files(path = scratchDir)
+    #print(splitfiles)
+    #print(typeof(splitfiles))
+    #print(class(splitfiles))
+    
+    mapdf = data.frame(c("NA"), c("NA"))
+    colnames(mapdf) = c("vals", "fname")
+    for(f in splitfiles){
+        #print(f)
+        tmp = paste(scratchDir, f, sep='')
+        cmd=paste('cut -d, -f1', tmp, '|' , 'sort', '|' , 'uniq' , sep=' ')
+        vals = system(cmd, intern = TRUE)
+        vals <- gsub('\"', '', vals)
+        tmpdf = as.data.frame(vals)
+        tmpdf$fname = f
+        mapdf = rbind(mapdf, tmpdf)
+    }
+    #print(mapdf)
+    
 
         
       ### read this file completely, analyze pair one by one and delete the rows every time you are done with it (longest time and reducing memory)
@@ -239,16 +273,18 @@ if(args[4] == "serial"){
           ### this works
       
 	  ### to do ###
-	  ## cat and sort the file instead of doing it in R. 
-	  ## sort the pairs so the search time stays same
-	  ## kill search after 1000 hits
-	  ## parallel search with sequential delete lines from file
-	  ## delete LLC
+	  ## make the code faster
+	     ### split into files each with 100K lines, use numeric suffix, allows upto 100000 files, and keep track of the unique gene names in each file
+	        #### split -a 5 -d -l 100000 filename prefix
+	     ### only search the files which has the pairs
+	  ## continue where left off
+	  
 	for(a in analys_to_do){  # Although this can be parallelized, it doesn't save much time since it still might need the pairs to be analyzed sequentially
 
 		analys = paste("Analys ", a, " ", sep='')
 
 		# extract the correct column names from the first file
+		#print(files[1])
 		tmp_read = read.csv(files[1], header=T, row.names=1, check.names=F) # read file
 		
 		tmp_selectanalyCols = grep( analys, colnames(tmp_read), value=T) # select the required analysis
@@ -262,10 +298,13 @@ if(args[4] == "serial"){
 		    print(p)
 		    
 		    #### in case there is more than one analysis in the big file pick as per analys number
-		    
 		    ### try fgrep to exit after 1000 matches; plus it may be faster
 		    ### http://stackoverflow.com/questions/13913014/grepping-a-huge-file-80gb-any-way-to-speed-it-up https://groups.google.com/forum/#!topic/comp.lang.awk/gngk-epT9Ug
-		    cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , grepFileName, sep=' ')
+		    #cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , grepFileName, sep=' ')
+
+		    scractfilename = paste(c(scratchDir, as.vector(mapdf[which(mapdf[, "vals"] == p), "fname"])), collapse="")
+		    #print(scractfilename)		    
+		    cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , scractfilename, sep=' ')
 		    t1 <- system(cmd, intern = TRUE)
 		    
 		    # add header to the results vector
@@ -366,6 +405,10 @@ if(args[4] == "serial"){
 	
 	cmd=paste('rm' , '-f', grepFileName, sep=' ')
 	#print(cmd)
+    d1 <- system(cmd, intern = TRUE)
+
+	cmd=paste('rm' , '-rf', scratchDir, sep=' ')
+	print(cmd)
     d1 <- system(cmd, intern = TRUE)
 
 }
