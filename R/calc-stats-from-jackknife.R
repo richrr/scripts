@@ -257,8 +257,8 @@ if(args[4] == "serial"){
         rm(tmp_read)
 
 		# the BEST loop to parallelize
-		#out_df = foreach(p=sort(pairs), .combine=rbind) %dopar% { 
-		out_df = foreach(p=sort(pairs), .combine='cfun') %dopar% { 
+		out_df = foreach(p=sort(pairs), .combine=rbind) %dopar% { 
+		#out_df = foreach(p=sort(pairs), .combine='cfun') %dopar% { 
 		    print(p)
 		    
 		    #### in case there is more than one analysis in the big file pick as per analys number
