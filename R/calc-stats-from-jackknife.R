@@ -66,7 +66,7 @@ cfun <- function(...){
     # use the last element
     pattrn = res$p[length(res$p)] 
     
-    #pattrn = paste("'", pattrn, "'", sep='')
+    pattrn = paste("'", pattrn, "'", sep='')
     cmd=paste('LC_ALL=C', 'fgrep', "-v", pattrn , grepFileName, "> filename2 ; mv filename2", grepFileName, sep=' ')
 	#print(cmd)
     d1 <- system(cmd, intern = TRUE)
@@ -302,9 +302,16 @@ if(args[4] == "serial"){
 		    ### http://stackoverflow.com/questions/13913014/grepping-a-huge-file-80gb-any-way-to-speed-it-up https://groups.google.com/forum/#!topic/comp.lang.awk/gngk-epT9Ug
 		    #cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , grepFileName, sep=' ')
 
-		    scractfilename = paste(c(scratchDir, as.vector(mapdf[which(mapdf[, "vals"] == p), "fname"])), collapse="")
-		    #print(scractfilename)		    
-		    cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", p , scractfilename, sep=' ')
+                    scractfilename = ''
+                    if(length(as.vector(mapdf[which(mapdf[, "vals"] == p), "fname"])) == 1){
+		        scractfilename = paste(c(scratchDir, as.vector(mapdf[which(mapdf[, "vals"] == p), "fname"])), collapse="")
+		    } else {
+		        print("Redo the calculation for this id since there seem to be one or more files for this id.")
+		    }
+		    
+		    #print(scractfilename)
+		    pattren = paste("'", p, "'", sep='')		    
+		    cmd=paste('LC_ALL=C', 'fgrep', "-m 1000", pattren , scractfilename, sep=' ')
 		    t1 <- system(cmd, intern = TRUE)
 		    
 		    # add header to the results vector
@@ -391,6 +398,7 @@ if(args[4] == "serial"){
 			    res = data.frame(p , median_coeff, median_pval)		    
 		   
 		    }
+		    print(res)
 		    res
 		    
 		}
