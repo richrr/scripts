@@ -76,7 +76,7 @@ def main(args):
     
     if args.substitute:
         ofile = infile + "_new_id" + ".csv"
-        newlist = map_identifiers(infile, mapfile, delim , "__", fromcol, tillcol, False) 
+        newlist = map_identifiers(infile, mapfile, delim , "__", fromcol, tillcol, False,1, True) # skip missing ids else it throws error in R script if row names have NA 
         #print(newlist)
         writeLIST_to_file(newlist, ofile)
         colheader = newlist[0].split(delim)[0]
@@ -108,6 +108,8 @@ def main(args):
         contents = l.strip('\n').split(delim)
         #print contents
         key = delim.join([contents[i] for i in renamecol])
+        if key == 'NA':
+            key = 'NO_ID_FOUND'
         
         try:
             value= [float(elem) if not 'NA' else 0 for elem in contents[1:] ] # convert all elements except first to float and convert NA to 0
