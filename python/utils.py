@@ -43,10 +43,10 @@ def writeLIST_to_file(list, filename):
 #####################################################################
 # WRITE DICTIONARY TO FILE, ARG: DICTIONARY , FILENAME
 ######################################################################
-def writeDICT_to_file(DICT, filename):
-    outfile = open(filename,'w')
+def writeDICT_to_file(DICT, filename, delim='\t', method='w'):
+    outfile = open(filename, method)
     for k, v in DICT.items():
-        outfile.write("%s\t%s\n" % (k , v))
+        outfile.write("%s%s%s\n" % (k , delim, v))
     outfile.close()
     print 'DICT written to file %s' % (filename)
     return
@@ -79,6 +79,7 @@ def list_to_dict(List, delim='\t', joiner=',', string="current", key_column=0, v
         if '#' in l:
             continue
         key = value = ''
+        #print l , delim
         array = l.strip().split(delim)
         #print array
         key = array[key_column]
@@ -166,7 +167,7 @@ Example: map-identifiers (matrix.txt, mapper.txt, '\t', '\t', 0, 2)
 
 
 ######################################################################
-def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_column=1, insert=False, insert_column=1, skipmissing=False):
+def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_column=1, insert=False, insert_column=1, skipmissing=False, missingidasNA=True):
     f1 = read_file(file1) # treated as a list
 
     f2 = read_file(file2) # used to make a dictionary
@@ -194,7 +195,10 @@ def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_col
             array.insert(insert_column , 'NA')
         # replace id with missing value
         elif array[0] not in d2 and not insert:
-            array[0] = 'NA'
+            if missingidasNA:
+                array[0] = 'NA'
+            else:
+                pass # keeps array[0] as it is
         
         newlist.append(joiner.join(array))
 

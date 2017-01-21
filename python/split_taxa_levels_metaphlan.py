@@ -52,6 +52,9 @@ with open(infile) as f:
 
 
 for l in taxa_levels:
+    #print l
+    if len(l) == 1: # there is only 1 element (e.g. "#t") in this list
+        continue
     flag = check_taxa_level(l[1:]) # skip the taxa level indicator
     if (flag):
         new_l = [l[0]] + headers + l[1:]
