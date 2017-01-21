@@ -48,6 +48,7 @@ def main(args):
     parser.add_argument('-t', '--tillcolumn', default=1, type=int) # 0-index based column, convert ids TO this column of mapping file
     parser.add_argument('-r', '--renamecolumn', nargs='*', type =int, default=[0])  # creates a list of items (0-index based column) used as probe ids (this becomes the ids in the FROM column)
     parser.add_argument('-d', '--delimiter', default=',')  # delimiter for file
+    parser.add_argument('-s', '--substitute', action='store_true', default=False) # substitute the infile with the new ids from the mapping file 
     
     
     
@@ -72,10 +73,16 @@ def main(args):
     d2 = list_to_dict(f2, delim, delim, "current", tillcol, fromcol)
 
     
+    if args.substitute:
+        ofile = infile + "_new_id" + ".csv"
+        newlist = map_identifiers(infile, mapfile, delim , delim, fromcol, tillcol, False) 
+        #print(newlist)
+        writeLIST_to_file(newlist, ofile)
+        colheader = newlist[0].split(delim)[0]
+        infile = ofile
+        print("Changing infile to" + ofile + " and using " + colheader + " as col header")
+        
 
-    #ret_list = map_identifiers(degfile, mapfile, delim , delim, fromcol, tillcol, False, 1, False, False) 
-    #print(ret_list)
-    #writeLIST_to_file(ret_list, ofile)
     
 
     d_list=list()
@@ -89,29 +96,9 @@ def main(args):
 
             
 
-    '''
-    # since columns are skipped (#OTU ID, a string column) writeLIST_to_file(comment_list, outfile) will not work.
-    cmt_temp_dict=dict()
-    for l in comment_list:
-        contents = l.strip('\n').split(delim)
-        key = delim.join([contents[i] for i in renamecol])
-        try:
-            value= [contents[col] for col in np.arange(fromcol, tillcol+1)]
-        except:
-            print l
-        if key not in cmt_temp_dict:
-            cmt_temp_dict[key] = value
-        else:
-            print l
-    out = open(outfile, 'w')
-    for k,v in cmt_temp_dict.items():
-        val = [str(j) for j in v]
-        out.write ('%s%s%s\n' %(k, delim, delim.join(val)))
-    out.close()
-    '''
 
-    temp_dict=dict()
     probe_expression_dict = dict()  # key is probe, value is the sum of expression across all samples
+    probe_raw_expression_dict = dict()  # key is probe, value is the expression across all samples
     
     for l in d_list:
         #if "root;" not in l:
@@ -125,15 +112,28 @@ def main(args):
         except:
             print l
             sys.exit("Error: Cannot convert to float")
-        if key not in temp_dict:
-            temp_dict[key] = l.strip('\n')
+        if key not in probe_raw_expression_dict: # this is not processed so far
+            tmp = l.strip('\n').split(delim)[1:] # get everything except first col
+            probe_raw_expression_dict[key] = delim.join(tmp)
             probe_expression_dict[key] = sum(value)
         else:
+          if args.substitute:
+            if sum(value) > probe_expression_dict[key]: # only keep the max valued probe
+                tmp = l.strip('\n').split(delim)[1:]
+                probe_raw_expression_dict[key] = delim.join(tmp)
+                probe_expression_dict[key] = sum(value)
+          else:
             print l  # repeated probe
             sys.exit("Error: Repeated probe")
-            #temp_dict[key] = [x+y for x,y in zip(temp_dict[key], value)]
 
-    
+
+    if args.substitute:
+        ofile= infile + outstr + ".csv"
+        writeLIST_to_file(comment_list, ofile)  
+        writeDICT_to_file(probe_raw_expression_dict, ofile, ',', 'a')
+        sys.exit("Done")
+
+   
     degs = [d.strip('\n') for d in read_file(degfile)]
     
     final_list = list()
@@ -163,16 +163,6 @@ def main(args):
     
     
     
-    '''
-    # this might be a list of tuples [(k1,v1), (k2,v2)], where each v is a list [vi vii ...]
-    sorted_temp_dict = sorted(temp_dict.iteritems(), key=operator.itemgetter(1), reverse=True) 
-    out = open(outfile, 'a')
-    for i in sorted_temp_dict:
-        val = [str(j) for j in i[1]]
-        out.write ('%s%s%s\n' %(i[0], delim, delim.join(val)))
-    out.close()
-    #print len(sorted_temp_dict)
-    '''
 
 
 
