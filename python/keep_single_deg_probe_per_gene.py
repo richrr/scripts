@@ -8,6 +8,7 @@ from time import localtime, strftime
 import argparse
 import re
 import numpy as np
+import math
 
 # /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/analysis/single_deg_prob_per_gene
 # Usage: python ~/Morgun_Lab/richrr/scripts/python/keep_single_deg_probe_per_gene.py -i ~/Morgun_Lab/richrr/Cervical_Cancer/Data/gene-expression/HumanWG6-IlluminaGeneExpr_QuantileNormalized_Cohort1.csv -g ~/Morgun_Lab/richrr/Cervical_Cancer/analysis/merged/comp/gexpress/p0.2/per_analysis/Analys1-p0.2-consis.csv-comb-pval-output.csv.combpval.0.05.combfdr.0.1.cutoff.csv.consis_genes.csv -m ~/Morgun_Lab/richrr/Cervical_Cancer/Data/gene-expression/common-probes-to-genes-HumanWG6_HumanHT12v4.txt
@@ -70,12 +71,12 @@ def main(args):
     delim = args.delimiter
 
     f2 = read_file(mapfile) # used to make a dictionary of gene symbol (key) to probe id (value)
-    d2 = list_to_dict(f2, delim, delim, "current", tillcol, fromcol)
+    d2 = list_to_dict(f2, delim, "__", "current", tillcol, fromcol)
 
     
     if args.substitute:
         ofile = infile + "_new_id" + ".csv"
-        newlist = map_identifiers(infile, mapfile, delim , delim, fromcol, tillcol, False) 
+        newlist = map_identifiers(infile, mapfile, delim , "__", fromcol, tillcol, False) 
         #print(newlist)
         writeLIST_to_file(newlist, ofile)
         colheader = newlist[0].split(delim)[0]
@@ -99,6 +100,7 @@ def main(args):
 
     probe_expression_dict = dict()  # key is probe, value is the sum of expression across all samples
     probe_raw_expression_dict = dict()  # key is probe, value is the expression across all samples
+    cannot_convert_to_float = list()
     
     for l in d_list:
         #if "root;" not in l:
@@ -108,10 +110,12 @@ def main(args):
         key = delim.join([contents[i] for i in renamecol])
         
         try:
-            value= [float(elem) for elem in contents[1:]] # convert all elements except first to float
+            value= [float(elem) if not 'NA' else 0 for elem in contents[1:] ] # convert all elements except first to float and convert NA to 0
         except:
-            print l
-            sys.exit("Error: Cannot convert to float")
+            #print l
+            #sys.exit("Error: Cannot convert to float")
+            cannot_convert_to_float.append(l)
+            continue
         if key not in probe_raw_expression_dict: # this is not processed so far
             tmp = l.strip('\n').split(delim)[1:] # get everything except first col
             probe_raw_expression_dict[key] = delim.join(tmp)
@@ -131,7 +135,12 @@ def main(args):
         ofile= infile + outstr + ".csv"
         writeLIST_to_file(comment_list, ofile)  
         writeDICT_to_file(probe_raw_expression_dict, ofile, ',', 'a')
-        sys.exit("Done")
+        
+        if(len(cannot_convert_to_float) > 0):
+            print("\nWarning: Cannot convert these to float so skipped these ids")
+            print('\n'.join(cannot_convert_to_float))
+        
+        sys.exit("\nDone")
 
    
     degs = [d.strip('\n') for d in read_file(degfile)]

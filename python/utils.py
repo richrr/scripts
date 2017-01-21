@@ -200,8 +200,8 @@ def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_col
             else:
                 pass # keeps array[0] as it is
         
-        newlist.append(joiner.join(array))
-
+        #newlist.append(joiner.join(array))
+        newlist.append(delim.join(array))
     return newlist
 
 
