@@ -47,6 +47,8 @@ p <- add_argument(p, "--symbolColumnName", help="the name of the column containi
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 p <- add_argument(p, "--noCorrelationsRequested", help="This is a preliminary analysis and no correlations are requested. Use this if you have a huge (e.g. >10K input elements as rows)", flag=TRUE)
 
+p <- add_argument(p, "--skipDiffInputsCheck", help="does not quit if diff input check fails.", flag=TRUE) # avoid using this
+
 # # required; but written as optional format so I explicitly mention the following in cmd line
 p <- add_argument(p, "--lists", help="lists (of measurement labels e.g. taxa names, phenotypics tests) to generate pairs for calculate correlation", nargs=2) 
 p <- add_argument(p, "--AnalysToDoList", help="AnalysToDoList", default="AnalysToDoList.txt") # tab-delimited; perform correlations and/or comparisons as per input
@@ -267,7 +269,9 @@ checkDiffInputs = function(list1, list2, search, inn){
            strr = paste("\n\nThe following ids in the", search ,"file are not present in the", inn, "file\n", sep=' ')
            cat(strr)
            print(diff)
-           quit()
+           if(!argv$skipDiffInputsCheck){
+               quit()
+           }
     }
     #return(diff)
 }
