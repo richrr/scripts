@@ -486,6 +486,71 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 }
 
 
+library(Biobase)
+library(limma)
+
+###
+# returns the mean, meadian, and fold change for the elements in the two categories
+###
+GetSimpleStats = function(lgene, edata, c1, c2, dict){
+
+    n<<- n+1
+    cat (n)
+    cat (":\t")
+    calculating = paste(lgene, c1, "vs" , c2, sep=" ___ ")
+    cat (calculating)
+    cat ("\n")
+
+    idxs1 = as.vector(dict[[c1]])
+    idxs2 = as.vector(dict[[c2]])
+
+    #print(idxs1)
+    #print(idxs2)
+
+    c1 = as.vector(edata[lgene, idxs1])
+    c2 = as.vector(edata[lgene, idxs2])
+
+    c1 =  numericizeVector(c1) 
+    #print(c1)
+    c2 = numericizeVector(c2)  
+    #print(c2)
+
+    
+    outLine = ''
+    p = ''
+
+ 
+    mean_c1 = NA
+    mean_c2 = NA
+    
+    median_c1 = NA
+    median_c2 = NA
+
+    # there are at least 3 samples with values (i.e. without NA)
+    if(sum(!is.na(c1)) >= 3){
+        mean_c1 = mean(c1, na.rm=TRUE)
+        median_c1 = median(c1, na.rm=TRUE)
+    } 
+
+    if(sum(!is.na(c2)) >= 3){
+        mean_c2 = mean(c2, na.rm=TRUE)
+        median_c2 = median(c2, na.rm=TRUE)
+    } 
+
+    
+    fold_change_mean = NA
+    fold_change_median = NA
+
+    if(sum(!is.na(c1)) < 3 || sum(!is.na(c2)) < 3){
+        # nothing
+    } else {
+        fold_change_mean = mean_c1/mean_c2
+        fold_change_median = median_c1/median_c2
+    }
+    outLine = as.matrix(c(mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median))
+    
+    outLine
+}
 
 #==================================================================================================================
 #		Conditions 1 and 3
@@ -502,11 +567,6 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 #	vector of length 4: method, mean in c1, mean in c2,pvalue
 
 CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
-    idxs1 = as.vector(dict[[c1]])
-    idxs2 = as.vector(dict[[c2]])
-
-    #print(idxs1)
-    #print(idxs2)
 
     n<<- n+1
     cat (n)
@@ -515,15 +575,14 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
     cat (calculating)
     cat ("\n")
 
-    #c1 = numericizeVector(as.vector(edata[lgene, idxs1]))
-    #c2 = numericizeVector(as.vector(edata[lgene, idxs2]))
+    idxs1 = as.vector(dict[[c1]])
+    idxs2 = as.vector(dict[[c2]])
+
+    #print(idxs1)
+    #print(idxs2)
+
     c1 = as.vector(edata[lgene, idxs1])
     c2 = as.vector(edata[lgene, idxs2])
-    #print(typeof(c1))
-    #print(class(c1))
-
-    #print(c1)
-    #print(c2)
         
     c1 =  numericizeVector(c1) 
     print(c1)
@@ -552,7 +611,7 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
         median_c2 = median(c2, na.rm=TRUE)
     } 
 
-    #quit()
+    
     fold_change_mean = NA
     fold_change_median = NA
 
@@ -604,9 +663,12 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
 }
 
 
+
 #==================================================================================================================
 #		Conditions 1 and 3
 #==================================================================================================================
+
+
 # function : calculate comparison,pvalue,fdr for all genes using two categories
 # input:
 #    	  1. list of genes: for which to calculate the comparison
@@ -619,32 +681,78 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
 #	a table containing gene information, means in c1 and c2,pvalue,fdr
 
 calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMethod, pairedd, indxg){
-    # calculate for each gene
-    out = sapply(lgenes, CalcCom, expressionData, c1, c2, dict, comparMethod, pairedd)
 
-    # the genes become row names; and the method, meanx, meany, and pvalue are the column names
-    out = t(out)
+    out = ''
 
-    # method used; # just take the first non-NA element
-    tmp_uniq = unique(out[,1]) 
-    NonNAindex <- which(!is.na(tmp_uniq))[1]
-    method_label = tmp_uniq[NonNAindex]
+    if(comparMethod == 'limma'){
+	    # create the design
+	    idxs1 = as.vector(dict[[c1]])
+	    idxs2 = as.vector(dict[[c2]])
+	    all_idxs = c(idxs1, idxs2)
+	    
+	    numbSamplc1 = length(idxs1)
+	    numbSamplc2 = length(idxs2)
+	    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
+	    Group <- factor(targets, levels=c(c1,c2))
+	    design <- model.matrix(~0+Group)
+	    colnames(design) <- c("MU","WT")
+	       
+	    # extract the required expression data
+	    subsetexpressionData = expressionData[lgenes, all_idxs]
+	    
+	    
+	    eset = ExpressionSet(data.matrix(subsetexpressionData))
+	    fit <- lmFit(eset, design)
+	    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
+	    fit2 <- contrasts.fit(fit, cont.matrix)
+	    fit2 <- eBayes(fit2)
+	    out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
+	    
+	    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
+	    
+	    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"log2FC",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
+	    #print(head(out1))
+	    
+	    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1, c2, dict)
+	    out2 = t(out2)
+	    
+	    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
+	    #print(head(out2))
+	    
+	    out = cbind(out2,out1)
+	    #print(head(out))
+        
+    } else {
+	    # calculate for each gene
+	    out = sapply(lgenes, CalcCom, expressionData, c1, c2, dict, comparMethod, pairedd)
 
+	    # the genes become row names; and the method, meanx, meany, and pvalue are the column names
+	    out = t(out)
+
+	    # method used; # just take the first non-NA element
+	    tmp_uniq = unique(out[,1]) 
+	    NonNAindex <- which(!is.na(tmp_uniq))[1]
+	    method_label = tmp_uniq[NonNAindex]
+
+	    
+	    # discards the first column of method used
+	    out = out[,-1]
+
+	    colnames(out) = c(paste("Analys", indxg, method_label,"Mean", c1, sep=" "), paste("Analys", indxg, method_label,"Mean", c2, sep=" "), paste("Analys", indxg, method_label,"FoldChange", sep=" "), paste("Analys", indxg, method_label,"Median", c1, sep=" "), paste("Analys", indxg, method_label,"Median", c2, sep=" "), paste("Analys", indxg, method_label,"FolChMedian", sep=" "), paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
+
+	    # calculate FDR
+	    FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
+	    oldColnames = colnames(out)  
+	    out = cbind(out, FDR)
+	    colnames(out) = c(oldColnames,paste("Analys", indxg, method_label,c1,"vs",c2,"FDR",sep=" "))
+	    geneName = rownames(out)
+	    out = cbind(geneName,out)
+
+    }
     
-    # discards the first column of method used
-    out = out[,-1]
-
-    colnames(out) = c(paste("Analys", indxg, method_label,"Mean", c1, sep=" "), paste("Analys", indxg, method_label,"Mean", c2, sep=" "), paste("Analys", indxg, method_label,"FoldChange", sep=" "), paste("Analys", indxg, method_label,"Median", c1, sep=" "), paste("Analys", indxg, method_label,"Median", c2, sep=" "), paste("Analys", indxg, method_label,"FolChMedian", sep=" "), paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
-
-    # calculate FDR
-    FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
-    oldColnames = colnames(out)  
-    out = cbind(out, FDR)
-    colnames(out) = c(oldColnames,paste("Analys", indxg, method_label,c1,"vs",c2,"FDR",sep=" "))
-    geneName = rownames(out)
-    out = cbind(geneName,out)
     out
 }
+
 
 
 #==================================================================================================================
