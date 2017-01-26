@@ -59,6 +59,8 @@ p <- add_argument(p, "--pairedInfoColumn", help="Column in map file in which to 
 ## optional methods for t test and correlations
 p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="tt") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test)
 p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="pearson") # allowed: pearson, "kendall", or "spearman", can be abbreviated.
+p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
+
 
 argv <- parse_args(p)
 #print (p)
@@ -72,6 +74,8 @@ if(length(argv$lists)!= 2)
 }
 list1File = argv$lists[1]
 list2File = argv$lists[2]
+
+logbase = argv$logbase
 
 outputFile = argv$output
 
@@ -258,6 +262,17 @@ if(!argv$noCorrelationsRequested){
 expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA", "Na", "NaN"))
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
+
+if(logbase != 0){
+    if(logbase == 1) {
+          expressionData[, !names(expressionData) %in% c(symbleColumnName)] = log(expressionData[, !names(expressionData) %in% c(symbleColumnName)] + 1)  # using the default base e i.e. exp(1)
+    } else {
+          expressionData[, !names(expressionData) %in% c(symbleColumnName)] = log(expressionData[, !names(expressionData) %in% c(symbleColumnName)] + 1, logbase)
+    }
+}
+
+write.csv(expressionData,paste(c(outputFile,"log", logbase, "transform-output.csv"),collapse='-'),row.names=FALSE)
+
 
 
 
