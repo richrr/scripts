@@ -32,6 +32,7 @@ library(reshape)
 
 # load the functions from a different file to keep code neater
 source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-functs.R")
+#source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/limma-statistics.R") # only used for testing
 
 
 
@@ -57,7 +58,7 @@ p <- add_argument(p, "--mapColumns", nargs=2, help="Columns in map file in which
 p <- add_argument(p, "--pairedInfoColumn", help="Column in map file in which to search the mouse ids. This info will help to identify samples from same mice", default="Mouse") # Column in map file in which to search the mouse ids. This info will help to identify samples from same mice, useful when doing paired comparisons
 
 ## optional methods for t test and correlations
-p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="tt") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test)
+p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="limma") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test), limma
 p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="pearson") # allowed: pearson, "kendall", or "spearman", can be abbreviated.
 p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
 
