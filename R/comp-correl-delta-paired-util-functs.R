@@ -710,7 +710,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    
 	    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
 	    
-	    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"log2FC",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
+	    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
 	    #print(head(out1))
 	    
 	    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1, c2, dict)
