@@ -489,9 +489,9 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 library(Biobase)
 library(limma)
 
-###
+###################
 # returns the mean, meadian, and fold change for the elements in the two categories
-###
+###################
 GetSimpleStats = function(lgene, edata, c1, c2, dict){
 
     n<<- n+1
@@ -806,6 +806,11 @@ CalcComparisCor = function(pair, edata, c1, c2, dict, correlMethod, pairedd){
     #print(r_12)
     #print("R34")
     #print(r_34)
+    
+    # made the results in vector format
+    fca = as.vector(t(ca)) 
+    fcb = as.vector(t(cb))
+
 
     if(grepl(searchString_pattern, ca) && grepl(searchString_pattern, cb)){
 
@@ -826,10 +831,13 @@ CalcComparisCor = function(pair, edata, c1, c2, dict, correlMethod, pairedd){
       #pv.dif.cor = 2*pt(-abs(fisher),Inf)
       #print(pv.dif.cor)
 
-      ret_result = c(r_12, r_34, res$p)
+      #ret_result = c(r_12, r_34, res$p)  # OR
+      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
       #print(ret_result)
     } else {
-        ret_result = c(r_12, r_34, NA) # because you still expect the correlations to be the same
+        # because you still expect the correlations to be the same
+        #ret_result = c(r_12, r_34, NA)    # OR
+        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA)
         #print("here")
     }
   
@@ -866,9 +874,10 @@ calculateComparisCorrelation = function (pairs, expressionData, c1, c2, dict, co
 
     # method used
     method_label = correlMethod
-
     # append method used to column labels
-    colnames(out) = c(paste("Analys", indxg, c1, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
+    colnames(out) = c( paste("Analys", indxg, c1, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c1, method_label, "CategCorPVal",sep=" "), 
+    		       paste("Analys", indxg, c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c2, method_label, "CategCorPVal",sep=" "), 
+    		       paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
 
     # calculate FDR
     FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
@@ -928,6 +937,9 @@ CalcDeltaComparisCor = function(pair, edata, c1, c2, c3, c4, dict, correlMethod)
     #print("R34")
     #print(r_34)
 
+    # made the results in vector format
+    fca = as.vector(t(ca)) 
+    fcb = as.vector(t(cb))
 
     if(grepl(searchString_pattern, ca) && grepl(searchString_pattern, cb)){
 
@@ -947,9 +959,12 @@ CalcDeltaComparisCor = function(pair, edata, c1, c2, c3, c4, dict, correlMethod)
       #pv.dif.cor = 2*pt(-abs(fisher),Inf)
       #print(pv.dif.cor)
 
-      ret_result = c(r_12, r_34, res$p)
+      #ret_result = c(r_12, r_34, res$p) # OR
+      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
     } else {
-        ret_result = c(r_12, r_34, NA) # because you still expect the correlations to be the same
+        # because you still expect the correlations to be the same
+        #ret_result = c(r_12, r_34, NA) # OR
+        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
     }
 
     ret_result
@@ -981,11 +996,14 @@ calculateComparisDeltaCorrelation = function (pairs, expressionData, c1, c2, c3,
     # the pairs become row names; and the corr coeff and pvalue are the column names
     out = t(out)
 
+
     # method used
     method_label = correlMethod
 
     # append method used to column labels
-    colnames(out) = c(paste("Analys", indxg, c1, "minus" , c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c3, "minus" , c4, method_label,"Coefficient",sep=" "), paste("Analys", indxg, method_label, c1, "minus" , c2, "vs", c3, "minus" , c4, "pvalue",sep=" "))
+    colnames(out) = c(paste("Analys", indxg, c1, "minus" , c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c1, "minus" , c2, method_label, "CategCorPVal",sep=" "), 
+    		      paste("Analys", indxg, c3, "minus" , c4, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c3, "minus" , c4, method_label, "CategCorPVal",sep=" "), 
+    		      paste("Analys", indxg, method_label, c1, "minus" , c2, "vs", c3, "minus" , c4, "pvalue",sep=" "))
 
     # calculate FDR
     FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
