@@ -85,3 +85,14 @@ R CMD INSTALL -d NMF
 all works fine and it doesn't do namespace ‘stringr’ 0.6.2 is already loaded,
 #############################
 then in R run install.packages('igraph', repos='http://cran.rstudio.com/')
+
+install.packages('foreach', repos='http://cran.rstudio.com/')
+install.packages('Rmpi', repos='http://cran.rstudio.com/') # got error about "Cannot find mpi.h header file" and didn't have sudo access so asked Chris to install
+
+install.packages('reshape', repos='http://cran.rstudio.com/')
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("limma")
+
+source("http://bioconductor.org/biocLite.R")
+biocLite(c("Biobase"))

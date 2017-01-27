@@ -718,8 +718,8 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    
 	    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
 	    #print(head(out2))
-	    
-	    out = cbind(out2,out1)
+	    geneName = rownames(out2)
+	    out = cbind(geneName, out2,out1)
 	    #print(head(out))
         
     } else {
