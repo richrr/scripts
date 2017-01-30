@@ -696,20 +696,29 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    Group <- factor(targets, levels=c(c1,c2))
 	    design <- model.matrix(~0+Group)
 	    colnames(design) <- c("MU","WT")
-	       
+	    print(design)
+	    
+	    ### what about give all the list of genes and select only required later ###
 	    # extract the required expression data
-	    subsetexpressionData = expressionData[lgenes, all_idxs]
+	    #subsetexpressionData = expressionData[lgenes, all_idxs]
+	    subsetexpressionData = expressionData[, all_idxs]
+	    #print(head(subsetexpressionData))
+	    print(ncol(subsetexpressionData))
 	    
 	    
 	    eset = ExpressionSet(data.matrix(subsetexpressionData))
+	    print(head(eset))
+	    
 	    fit <- lmFit(eset, design)
 	    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
 	    fit2 <- contrasts.fit(fit, cont.matrix)
 	    fit2 <- eBayes(fit2)
-	    out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
+	    ## keep only the genes of interest # https://support.bioconductor.org/p/23611/
+	    ##out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
+	    out1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH")
 	    
 	    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
-	    
+	    # https://www.biostars.org/p/100460/
 	    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
 	    #print(head(out1))
 	    
