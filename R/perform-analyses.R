@@ -32,7 +32,7 @@ library(reshape)
 
 # load the functions from a different file to keep code neater
 source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-functs.R")
-
+source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/get_base_stats_low_express_probes.R")
 
 
 #==================================================================================================================
@@ -60,6 +60,7 @@ p <- add_argument(p, "--pairedInfoColumn", help="Column in map file in which to 
 p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="limma") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test), limma
 p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="pearson") # allowed: pearson, "kendall", or "spearman", can be abbreviated.
 p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
+p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0) 
 
 
 argv <- parse_args(p)
@@ -76,6 +77,7 @@ list1File = argv$lists[1]
 list2File = argv$lists[2]
 
 logbase = argv$logbase
+backgrond = argv$background
 
 outputFile = argv$output
 
@@ -273,6 +275,11 @@ if(logbase != 0){
 
 write.csv(expressionData,paste(c(outputFile,"log", logbase, "transform-output.csv"),collapse='-'),row.names=FALSE)
 
+
+#==================================================================================================================
+# get some basic statistics about the entire expression data
+#==================================================================================================================
+get_base_stats_exp_data(expressionDataFile, backgrond, outputFile, sample_perc_threshold=10)
 
 
 

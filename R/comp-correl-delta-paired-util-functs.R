@@ -690,12 +690,14 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    idxs2 = as.vector(dict[[c2]])
 	    all_idxs = c(idxs1, idxs2)
 	    
+	    # see approach 2 on page 41 of https://bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/usersguide.pdf
 	    numbSamplc1 = length(idxs1)
 	    numbSamplc2 = length(idxs2)
 	    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
 	    Group <- factor(targets, levels=c(c1,c2))
 	    design <- model.matrix(~0+Group)
 	    colnames(design) <- c("MU","WT")
+	    rownames(design) <- all_idxs
 	    print(design)
 	    
 	    ### what about give all the list of genes and select only required later ###
