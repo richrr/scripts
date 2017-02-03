@@ -680,11 +680,34 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
 # output : 
 #	a table containing gene information, means in c1 and c2,pvalue,fdr
 
+if(FALSE){
+# give the comparison as:
+# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D"
+  ## note that in each comparison "_vs_" separates the two categories being compared
+  ## replace "_vs_" by "-" and then use to make contrasts
+# ";" separated categories as column2 e.g. "A;B;D;C"
+  ## these are used to create the levels and column names
+
+# figure out how to use variables to give the 
+
+# fix the check for mapping file vs comparison file
+}
+
 calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMethod, pairedd, indxg){
 
     out = ''
 
     if(comparMethod == 'limma'){
+            ### check if c1 AND c2 have ";"
+            ### split the c2 and create a vector of categories
+            ### loop over the categories to create all_idxs and all_idxs_lengths
+            ### use all_idxs and all_idxs_lengths to create targets
+            ### use vector of categories to create colnames(design)
+            
+            ### split the c1 using "res = strsplit(c1, ";")" and convert to list using "as.list(unlist(res))"
+            ### One way is to aim for do.call(makeConstrasts, myargs) where the 'myargs' is a list that you can construct any way you like, e.g., myargs = list("B-A", "C-B", "C-A", levels=design) do.call(makeContrasts, myargs) 
+            ### https://support.bioconductor.org/p/27900/
+    
 	    # create the design
 	    idxs1 = as.vector(dict[[c1]])
 	    idxs2 = as.vector(dict[[c2]])
@@ -695,6 +718,8 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    numbSamplc2 = length(idxs2)
 	    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
 	    Group <- factor(targets, levels=c(c1,c2))
+	    print(Group)
+	        
 	    design <- model.matrix(~0+Group)
 	    colnames(design) <- c("MU","WT")
 	    rownames(design) <- all_idxs
@@ -713,6 +738,11 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    
 	    fit <- lmFit(eset, design)
 	    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
+	    print(cont.matrix)
+	    
+	    
+	    
+	    
 	    fit2 <- contrasts.fit(fit, cont.matrix)
 	    fit2 <- eBayes(fit2)
 	    ## keep only the genes of interest # https://support.bioconductor.org/p/23611/
