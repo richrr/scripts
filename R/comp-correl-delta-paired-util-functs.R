@@ -698,30 +698,50 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
     out = ''
 
     if(comparMethod == 'limma'){
-            ### check if c1 AND c2 have ";"
-            ### split the c2 and create a vector of categories
-            ### loop over the categories to create all_idxs and all_idxs_lengths
-            ### use all_idxs and all_idxs_lengths to create targets
-            ### use vector of categories to create colnames(design)
             
-            ### split the c1 using "res = strsplit(c1, ";")" and convert to list using "as.list(unlist(res))"
-            ### One way is to aim for do.call(makeConstrasts, myargs) where the 'myargs' is a list that you can construct any way you like, e.g., myargs = list("B-A", "C-B", "C-A", levels=design) do.call(makeContrasts, myargs) 
-            ### https://support.bioconductor.org/p/27900/
-    
-	    # create the design
-	    idxs1 = as.vector(dict[[c1]])
-	    idxs2 = as.vector(dict[[c2]])
-	    all_idxs = c(idxs1, idxs2)
+            all_categs = c("MU","WT")   # use vector of categories to create colnames(design)
+            all_idxs = c()
+            all_idxs_lengths = c()
+            Group = ''
+            #comparisonsargs = ''
+            
+            ### check if c1 AND c2 have ";"
+            if( (grepl(";", c1))&(grepl(";", c2)) ) {
+                
+                    # c2
+                    all_categs = unlist(strsplit(c2, ";")) # split the c2 and create a vector of categories
+                    for(catg in all_categs){              # loop over the categories to create all_idxs and all_idxs_lengths
+                        tmp_v = as.vector(dict[[catg]])
+                        all_idxs = c(all_idxs, tmp_v)
+                        all_idxs_lengths = c(all_idxs_lengths, length(tmp_v))
+                    }
+                    #print(all_categs)
+                    #print(all_idxs_lengths)
+                    
+                    targets=rep(all_categs, all_idxs_lengths) # use all_categs and all_idxs_lengths to create targets
+                    Group <- factor(targets, levels=all_categs)
+		    #print(Group)
+		    
+                    
+            } else {
 	    
-	    # see approach 2 on page 41 of https://bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/usersguide.pdf
-	    numbSamplc1 = length(idxs1)
-	    numbSamplc2 = length(idxs2)
-	    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
-	    Group <- factor(targets, levels=c(c1,c2))
-	    print(Group)
-	        
+		    # create the design
+		    idxs1 = as.vector(dict[[c1]])
+		    idxs2 = as.vector(dict[[c2]])
+		    all_idxs = c(idxs1, idxs2)
+		    
+		    # see approach 2 on page 41 of https://bioconductor.org/packages/release/bioc/vignettes/limma/inst/doc/usersguide.pdf
+		    numbSamplc1 = length(idxs1)
+		    numbSamplc2 = length(idxs2)
+		    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
+		    Group <- factor(targets, levels=c(c1,c2))
+		    print(Group)
+		    
+	    }
+	    
+	    
 	    design <- model.matrix(~0+Group)
-	    colnames(design) <- c("MU","WT")
+	    colnames(design) <- all_categs
 	    rownames(design) <- all_idxs
 	    print(design)
 	    
@@ -734,33 +754,70 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    
 	    
 	    eset = ExpressionSet(data.matrix(subsetexpressionData))
-	    print(head(eset))
+	    #print(head(eset))
 	    
 	    fit <- lmFit(eset, design)
-	    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
-	    print(cont.matrix)
+
+            if( (grepl(";", c1))&(grepl(";", c2)) ) {
+            
+                        # c1
+                        res = strsplit(c1, ";")          # split the c1
+                        #comparisonsargs = as.list(unlist(res))     # convert to list
+                        comparisonsargs = gsub("_vs_", "-" , unlist(res))     # convert to list
+                        #print(comparisonsargs)
+                        
+                        # https://support.bioconductor.org/p/27900/
+			astr=paste(comparisonsargs, collapse=",")
+			#Then add correct strings before and after.
+			prestr="makeContrasts("
+			poststr=",levels=design)"
+			commandstr=paste(prestr,astr,poststr,sep="")
+			#Now evaluate the command string
+			contrast.matrix <- eval(parse(text=commandstr))
+			#print(contrast.matrix)
+			
+			fit2 <- contrasts.fit(fit, contrast.matrix)
+			fit2 <- eBayes(fit2)
+			print(fit2)
+			quit()  ########### continue working from here ###################3
+
+
+			#The statistic fit2$F and the corresponding fit2$F.p.value combine the three pair-wise comparisons into one F
+			#-test.  This is equivalent to a one-way ANOVA for each gene except that the residual mean squares have been moderated between genes.
+			#To find genes which vary between the three RNA targets in any way, look for genes with small p-values.  To  nd the top 30 genes:
+			topTableF(fit2, number=30)
+
+			#A list of top genes for RNA2 versus RNA1 can be obtained from
+			topTable(fit2, coef=1, adjust="BH")
+			#The outcome of each hypothesis test can be assigned using
+			results <- decideTests(fit2)
+
+			#A Venn diagram showing numbers of genes signi cant in each comparison can be obtained from
+			vennDiagram(results)
 	    
-	    
-	    
-	    
-	    fit2 <- contrasts.fit(fit, cont.matrix)
-	    fit2 <- eBayes(fit2)
-	    ## keep only the genes of interest # https://support.bioconductor.org/p/23611/
-	    ##out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
-	    out1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH")
-	    
-	    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
-	    # https://www.biostars.org/p/100460/
-	    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
-	    #print(head(out1))
-	    
-	    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1, c2, dict)
-	    out2 = t(out2)
-	    
-	    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
-	    #print(head(out2))
-	    geneName = rownames(out2)
-	    out = cbind(geneName, out2,out1)
+	    } else {
+		    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
+		    print(cont.matrix)
+		    fit2 <- contrasts.fit(fit, cont.matrix)
+		    fit2 <- eBayes(fit2)
+		    ## keep only the genes of interest # https://support.bioconductor.org/p/23611/
+		    ##out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
+		    out1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH")
+		    
+		    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
+		    # https://www.biostars.org/p/100460/
+		    colnames(out1) = c(paste("Analys", indxg, comparMethod,c1,"vs",c2,"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"limma t",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"FDR",sep=" "), paste("Analys", indxg, comparMethod,c1,"vs",c2,"log_odds_deg",sep=" "))
+		    #print(head(out1))
+		    
+		    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1, c2, dict)
+		    out2 = t(out2)
+		    
+		    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
+		    #print(head(out2))
+		    geneName = rownames(out2)
+		    out = cbind(geneName, out2,out1)
+		    
+	    }
 	    #print(head(out))
         
     } else {

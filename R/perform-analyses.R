@@ -107,7 +107,7 @@ for(k in levels(mapFile[, exptCol])){
     # assign the sample names (i.e. values in samplIdCol) to key k
     dict[k] = as.vector(mapFile[which(mapFile[,exptCol]==k), samplIdCol]) 
 }
-
+#print(dict)
 
 #==================================================================================================================
 # check the number and order of samples assigned to groups in dict. MAY be as per the order in which the samples are added (order in the mapping file)
