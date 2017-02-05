@@ -6,7 +6,8 @@
 # add 4th column with "correlation" in analysis file to indicate whatever operation is to be done, needs to be done on correlations
 # 1. A vs B: 2 non-empty columns, last two columns empty [A	B empty empty]
 # 		# for an anova like analysis give the comparison as 
-#		 	# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D"
+#		 	# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D" in decreasing order of priority
+#				since the venn diagram only plots the top three comparisons
 #  				## note that in each comparison "_vs_" separates the two categories being compared
 # 				## code replaces "_vs_" by "-" and then use to make contrasts
 #			# ";" separated categories as column2 e.g. "A;B;D;C"
@@ -805,6 +806,9 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			#The outcome of each hypothesis test can be assigned using
 			resultsdt <- decideTests(fit2, adjust.method = "none", )
 			#print(resultsdt)
+			if(ncol(resultsdt) > 3){
+			    resultsdt = resultsdt[, 1:3]
+			}
 
 			#A Venn diagram showing numbers of genes significant in each comparison can be obtained from
 			pdf(paste("Analys", indxg, "no-fdr-limma-venn.pdf" , sep='-'))
