@@ -5,6 +5,13 @@
 # conditions: 
 # add 4th column with "correlation" in analysis file to indicate whatever operation is to be done, needs to be done on correlations
 # 1. A vs B: 2 non-empty columns, last two columns empty [A	B empty empty]
+# 		# for an anova like analysis give the comparison as 
+#		 	# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D"
+#  				## note that in each comparison "_vs_" separates the two categories being compared
+# 				## code replaces "_vs_" by "-" and then use to make contrasts
+#			# ";" separated categories as column2 e.g. "A;B;D;C"
+# 				## these are used to create the levels and column names
+
 
 # 2. delta A vs delta B: 3 non-empty columns, 3rd column delta, 4th column empty [A	B	delta	empty]  # needs 4 groups: two comma separated from A and two comma separated from B
 
@@ -674,24 +681,19 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
 #    	  1. list of genes: for which to calculate the comparison
 #         2. expression data
 #	  3 & 4. the categories to compare
+#		# note that if there are multiple categories being comapred like an ANOVA
+#		# give the comparison as 
+#		 	# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D"
+#  				## note that in each comparison "_vs_" separates the two categories being compared
+# 				## code replaces "_vs_" by "-" and then use to make contrasts
+#			# ";" separated categories as column2 e.g. "A;B;D;C"
+# 				## these are used to create the levels and column names
 #	  5. the dictionary containing mapping of category and samples which belong to it
 #         6. method for comparison (t test, Man Whitney, etc.)
 #         7. paired or unpaired
 # output : 
 #	a table containing gene information, means in c1 and c2,pvalue,fdr
 
-if(FALSE){
-# give the comparison as:
-# ";" separated comparison as column1 e.g. "A_vs_B;C_vs_D"
-  ## note that in each comparison "_vs_" separates the two categories being compared
-  ## replace "_vs_" by "-" and then use to make contrasts
-# ";" separated categories as column2 e.g. "A;B;D;C"
-  ## these are used to create the levels and column names
-
-# figure out how to use variables to give the 
-
-# fix the check for mapping file vs comparison file
-}
 
 calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMethod, pairedd, indxg){
 
@@ -706,6 +708,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
             #comparisonsargs = ''
             
             ### check if c1 AND c2 have ";"
+            # for anova like behavior, multi-categories
             if( (grepl(";", c1))&(grepl(";", c2)) ) {
                 
                     # c2
@@ -743,7 +746,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    design <- model.matrix(~0+Group)
 	    colnames(design) <- all_categs
 	    rownames(design) <- all_idxs
-	    print(design)
+	    #print(design)
 	    
 	    ### what about give all the list of genes and select only required later ###
 	    # extract the required expression data
@@ -758,15 +761,16 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    
 	    fit <- lmFit(eset, design)
 
-            if( (grepl(";", c1))&(grepl(";", c2)) ) {
+        if( (grepl(";", c1))&(grepl(";", c2)) ) {
             
-                        # c1
-                        res = strsplit(c1, ";")          # split the c1
-                        #comparisonsargs = as.list(unlist(res))     # convert to list
-                        comparisonsargs = gsub("_vs_", "-" , unlist(res))     # convert to list
-                        #print(comparisonsargs)
-                        
-                        # https://support.bioconductor.org/p/27900/
+            # c1
+            res = strsplit(c1, ";")          # split the c1
+            unlistedres = unlist(res)
+            comparisonsargs = gsub("_vs_", "-" , unlistedres)     # create limma compatiable comparisons
+            #print(comparisonsargs)
+            
+            # build the makecontrasts
+            # https://support.bioconductor.org/p/27900/
 			astr=paste(comparisonsargs, collapse=",")
 			#Then add correct strings before and after.
 			prestr="makeContrasts("
@@ -778,31 +782,73 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			
 			fit2 <- contrasts.fit(fit, contrast.matrix)
 			fit2 <- eBayes(fit2)
-			print(fit2)
-			quit()  ########### continue working from here ###################3
+			#print(fit2)
+			
+			#https://www.bioconductor.org/help/course-materials/2009/BioC2009/labs/limma/limma.pdf
+			# https://stat.ethz.ch/pipermail/bioconductor/2012-November/049385.html
+			#What limma does is always equivalent to Anova.  Of course it is not 
+			#classical Anova, but rather an empirical Bayes extension of Anova that is 
+			#appropriate for microarray data.
 
-
+			#Post hoc tests are done in limma using decideTests(), and many options are 
+			#offered.  You won't find classical methods like TukeyHSD though, because 
+			#limma isn't doing classical Anova and because methods like TukeyHSD don't 
+			#generalize well to high-dimensional datasets like microarrays.
+			
 			#The statistic fit2$F and the corresponding fit2$F.p.value combine the three pair-wise comparisons into one F
 			#-test.  This is equivalent to a one-way ANOVA for each gene except that the residual mean squares have been moderated between genes.
-			#To find genes which vary between the three RNA targets in any way, look for genes with small p-values.  To  nd the top 30 genes:
-			topTableF(fit2, number=30)
-
-			#A list of top genes for RNA2 versus RNA1 can be obtained from
-			topTable(fit2, coef=1, adjust="BH")
+			#To find genes which vary between any comparisons, look for genes with small p-values.  To find the top 50 genes:
+			#topdeg = topTableF(fit2, number=50)
+			#print(head(topdeg))
+			
+			#Note that toptable technically does not filter, it only sorts as per p-value
 			#The outcome of each hypothesis test can be assigned using
-			results <- decideTests(fit2)
+			resultsdt <- decideTests(fit2, adjust.method = "none", )
+			#print(resultsdt)
 
-			#A Venn diagram showing numbers of genes signi cant in each comparison can be obtained from
-			vennDiagram(results)
+			#A Venn diagram showing numbers of genes significant in each comparison can be obtained from
+			pdf(paste("Analys", indxg, "no-fdr-limma-venn.pdf" , sep='-'))
+			vennDiagram(resultsdt)
+			dev.off()
+			
+
+			# get the results for the required input gene list
+			outf1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH") # in order of lgenes
+			#print(head(outf1))
+			out = outf1[,c("F" , "P.Value")]
+			colnames(out) = c(paste("Analys", indxg, "limma F" , sep=' ') , paste("Analys", indxg, "limma F.P.Value" , sep=' '))
+
+			geneName = rownames(out)
+            out = cbind(geneName, out)
+            
+            # add the base statistics and the t test results		
+			for (contarst in 1:length(comparisonsargs)){
+			    tmpout = topTable(fit2[lgenes,],coef=contarst,sort="none",n=Inf, adjust="BH") # in order of lgenes
+			    tmpout = tmpout[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
+		    	colnames(tmpout) = c(paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"limma t",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"pvalue",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"FDR",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"log_odds_deg",sep=" "))
+			    #print(head(tmpout))
+			    
+			    c1_c2 = unlist(strsplit(unlistedres[contarst], "_vs_"))
+			    c1_ = c1_c2[1]
+			    c2_ = c1_c2[2]
+		    	out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1_, c2_, dict)
+		    	out2 = t(out2)
+		    	colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1_, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2_, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1_, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2_, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
+		    	#print(head(out2))
+		    	
+				out = cbind(out, out2, tmpout)
+			}
+			#print(head(out))
+
 	    
-	    } else {
+	    } else { # for two categories
 		    cont.matrix <- makeContrasts(MUvsWT=MU-WT, levels=design)
 		    print(cont.matrix)
 		    fit2 <- contrasts.fit(fit, cont.matrix)
 		    fit2 <- eBayes(fit2)
 		    ## keep only the genes of interest # https://support.bioconductor.org/p/23611/
 		    ##out1 = topTable(fit2,sort="none",n=Inf, adjust="BH")
-		    out1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH")
+		    out1 = topTable(fit2[lgenes,],sort="none",n=Inf, adjust="BH") # in order of lgenes
 		    
 		    out1 = out1[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
 		    # https://www.biostars.org/p/100460/

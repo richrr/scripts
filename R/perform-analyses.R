@@ -2,6 +2,7 @@
 ## partial correlation
 
 
+
 # Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID --genNetwork
 
 
@@ -320,6 +321,23 @@ csv_tmp_a12 = grep("," , tmp_a12, value = TRUE)
 no_csv_tmp_a12 = unlist(strsplit(csv_tmp_a12, ','))
 # remove elements with ',' and replace with the vector obtained by splitting on ','
 uniq_analys_elems = append(setdiff( tmp_a12, csv_tmp_a12 ), no_csv_tmp_a12) 
+
+# elements contains ';' in case of anova like analysis
+semcol_tmp_a12 = grep(";" , uniq_analys_elems, value = TRUE)
+# split based on ';'
+no_semcol_tmp_a12 = unlist(strsplit(semcol_tmp_a12, ';'))
+
+# the above may contain elements with "_vs_"
+vs_no_semcol_tmp_a12 = grep("_vs_" , no_semcol_tmp_a12, value = TRUE)
+# split based on '_vs_'
+no_vs_no_semcol_tmp_a12 = unlist(strsplit(vs_no_semcol_tmp_a12, '_vs_'))
+# remove elements with '_vs_' and replace with the vector obtained by splitting on '_vs_'
+uniq_analys_elems_tmp = append(setdiff( no_semcol_tmp_a12, vs_no_semcol_tmp_a12 ), no_vs_no_semcol_tmp_a12)
+
+
+# remove elements with ';' and replace with the vector obtained by splitting on ';'
+uniq_analys_elems = append(setdiff( uniq_analys_elems, semcol_tmp_a12 ), uniq_analys_elems_tmp) 
+#print(uniq_analys_elems)
 
 checkDiffInputs(unique(uniq_analys_elems[uniq_analys_elems != ""]), as.vector(mapFile[, exptCol]), "analysis", "mapping")
 
