@@ -61,7 +61,7 @@ p <- add_argument(p, "--pairedInfoColumn", help="Column in map file in which to 
 p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="limma") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test), limma
 p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="pearson") # allowed: pearson, "kendall", or "spearman", can be abbreviated.
 p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
-p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0) 
+p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0)
 
 
 argv <- parse_args(p)

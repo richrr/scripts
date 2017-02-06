@@ -497,6 +497,14 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 library(Biobase)
 library(limma)
 
+# http://stackoverflow.com/questions/2602583/geometric-mean-is-there-a-built-in
+gm_mean = function(x, na.rm=TRUE){
+  gm = exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+  return(gm)
+}
+
+
+
 ###################
 # returns the mean, meadian, and fold change for the elements in the two categories
 ###################
@@ -533,29 +541,42 @@ GetSimpleStats = function(lgene, edata, c1, c2, dict){
     
     median_c1 = NA
     median_c2 = NA
+    
+    gm_c1 = NA
+    gm_c2 = NA
 
     # there are at least 3 samples with values (i.e. without NA)
     if(sum(!is.na(c1)) >= 3){
         mean_c1 = mean(c1, na.rm=TRUE)
         median_c1 = median(c1, na.rm=TRUE)
+        gm_c1 = gm_mean(c1, na.rm=TRUE)
     } 
 
     if(sum(!is.na(c2)) >= 3){
         mean_c2 = mean(c2, na.rm=TRUE)
         median_c2 = median(c2, na.rm=TRUE)
+        gm_c2 = gm_mean(c2, na.rm=TRUE)
     } 
 
     
     fold_change_mean = NA
     fold_change_median = NA
+    fold_change_gm = NA
 
     if(sum(!is.na(c1)) < 3 || sum(!is.na(c2)) < 3){
         # nothing
     } else {
-        fold_change_mean = mean_c1/mean_c2
-        fold_change_median = median_c1/median_c2
+       if(logbase > 0) { # some form of log transform
+        	fold_change_mean = mean_c1-mean_c2
+        	fold_change_median = median_c1-median_c2
+        	fold_change_gm = gm_c1-gm_c2
+       } else { # not log transformed
+        	fold_change_mean = mean_c1/mean_c2
+        	fold_change_median = median_c1/median_c2
+        	fold_change_gm = gm_c1/gm_c2
+       }
     }
-    outLine = as.matrix(c(mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median))
+    outLine = as.matrix(c(mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, gm_c1 , gm_c2, fold_change_gm))
     
     outLine
 }
@@ -608,61 +629,83 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
     median_c1 = NA
     median_c2 = NA
 
+    gm_c1 = NA
+    gm_c2 = NA
+
     # there are at least 3 samples with values (i.e. without NA)
     if(sum(!is.na(c1)) >= 3){
         mean_c1 = mean(c1, na.rm=TRUE)
         median_c1 = median(c1, na.rm=TRUE)
+        gm_c1 = gm_mean(c1, na.rm=TRUE)
     } 
 
     if(sum(!is.na(c2)) >= 3){
         mean_c2 = mean(c2, na.rm=TRUE)
         median_c2 = median(c2, na.rm=TRUE)
+        gm_c2 = gm_mean(c2, na.rm=TRUE)
     } 
 
     
     fold_change_mean = NA
     fold_change_median = NA
+    fold_change_gm = NA
 
     if(sum(!is.na(c1)) < 3 || sum(!is.na(c2)) < 3){
-        outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA))
+        outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA, gm_c1 , gm_c2, fold_change_gm))
     } else if(pairedd == ""){
-        fold_change_mean = mean_c1/mean_c2
-        fold_change_median = median_c1/median_c2
+    
+       if(logbase > 0) { # some form of log transform
+        	fold_change_mean = mean_c1-mean_c2
+        	fold_change_median = median_c1-median_c2
+        	fold_change_gm = gm_c1-gm_c2
+       } else { # not log transformed
+        	fold_change_mean = mean_c1/mean_c2
+        	fold_change_median = median_c1/median_c2
+        	fold_change_gm = gm_c1/gm_c2
+       }
 
         if(comparMethod == 'tt'){
 		 # check if it works or throws an error (e.g. "data are essentially constant")
 		 obj<-try(t.test(c1,c2), silent=TRUE)
 		 if (is(obj, "try-error")) {
 		          # when error    
-		     	  outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA))     
+		     	  outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA, gm_c1 , gm_c2, fold_change_gm))     
 		 } else {
 			  p = t.test(c1,c2)
 			  #outLine = as.matrix(c(p$method,p$estimate,p$p.value))
-			  outLine = as.matrix(c(p$method,mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value))
+			  outLine = as.matrix(c(p$method,mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value, gm_c1 , gm_c2, fold_change_gm))
 		  }
         } else if(comparMethod == 'mw'){
           #p = wilcox.test(c1,c2,conf.int=T)
           p = wilcox.test(c1,c2)
-          outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
+          outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value, gm_c1 , gm_c2, fold_change_gm)) # since this test does not explicitly give the means in the "estimate"
         }
     } else if(pairedd == "paired"){
-        fold_change_mean = mean_c1/mean_c2
-        fold_change_median = median_c1/median_c2
+    
+       if(logbase > 0) { # some form of log transform
+        	fold_change_mean = mean_c1-mean_c2
+        	fold_change_median = median_c1-median_c2
+        	fold_change_gm = gm_c1-gm_c2
+       } else { # not log transformed
+	        fold_change_mean = mean_c1/mean_c2
+ 	        fold_change_median = median_c1/median_c2
+        	fold_change_gm = gm_c1/gm_c2
+       }
         
         if(comparMethod == 'tt'){
 		 # check if it works or throws an error (e.g. "data are essentially constant")
 		 obj<-try(t.test(c1,c2,paired=TRUE), silent=TRUE)
 		 if (is(obj, "try-error")) {
 		         # when error    
-		     	 outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA))     
+		     	 outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA, gm_c1 , gm_c2, fold_change_gm))     
 		 } else {
 		  	 p = t.test(c1,c2,paired=TRUE)
-		 	 outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) 
+		 	 outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value, gm_c1 , gm_c2, fold_change_gm)) 
 		 	 # since this test does not explicitly give the means in the "estimate"
 		 }
         }else if(comparMethod == 'mw'){
           p = wilcox.test(c1,c2,paired=TRUE)
-          outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
+          outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value, gm_c1 , gm_c2, fold_change_gm)) # since this test does not explicitly give the means in the "estimate"
         }
     }
 
@@ -764,14 +807,14 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 
         if( (grepl(";", c1))&(grepl(";", c2)) ) {
             
-            # c1
-            res = strsplit(c1, ";")          # split the c1
-            unlistedres = unlist(res)
-            comparisonsargs = gsub("_vs_", "-" , unlistedres)     # create limma compatiable comparisons
-            #print(comparisonsargs)
+			# c1
+			res = strsplit(c1, ";")          # split the c1
+			unlistedres = unlist(res)
+			comparisonsargs = gsub("_vs_", "-" , unlistedres)     # create limma compatiable comparisons
+			#print(comparisonsargs)
             
-            # build the makecontrasts
-            # https://support.bioconductor.org/p/27900/
+			# build the makecontrasts
+			# https://support.bioconductor.org/p/27900/
 			astr=paste(comparisonsargs, collapse=",")
 			#Then add correct strings before and after.
 			prestr="makeContrasts("
@@ -823,7 +866,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			colnames(out) = c(paste("Analys", indxg, "limma F" , sep=' ') , paste("Analys", indxg, "limma F.P.Value" , sep=' '))
 
 			geneName = rownames(out)
-            out = cbind(geneName, out)
+			out = cbind(geneName, out)
             
             # add the base statistics and the t test results		
 			for (contarst in 1:length(comparisonsargs)){
@@ -831,18 +874,18 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 		    	
 			    tmpout = topTable(fit2[lgenes,],coef=contarst,sort="none",n=Inf, adjust="BH") # in order of lgenes
 			    tmpout = tmpout[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
-		    	colnames(tmpout) = c(paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limma t",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"pvalue",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"FDR",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"log_odds_deg",sep=" "))
+			    colnames(tmpout) = c(paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limma t",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"pvalue",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"FDR",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"log_odds_deg",sep=" "))
 			    #print(head(tmpout))
 			    
 			    c1_c2 = unlist(strsplit(unlistedres[contarst], "_vs_"))
 			    c1_ = c1_c2[1]
 			    c2_ = c1_c2[2]
-		    	out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1_, c2_, dict)
-		    	out2 = t(out2)
-		    	colnames(out2) = c(paste("Analys", indxg_, comparMethod,"Mean", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Mean", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg_, comparMethod,"Median", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Median", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FolChMedian", sep=" "))
-		    	#print(head(out2))
+			    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1_, c2_, dict)
+			    out2 = t(out2)
+			    colnames(out2) = c(paste("Analys", indxg_, comparMethod,"Mean", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Mean", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg_, comparMethod,"Median", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Median", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FolChMedian", sep=" "), paste("Analys", indxg_, comparMethod,"GeoMean", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"GeoMean", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FolChGeoMean", sep=" "))
+			    #print(head(out2))
 		    	
-				out = cbind(out, out2, tmpout)
+			    out = cbind(out, out2, tmpout)
 			}
 			#print(head(out))
 
@@ -864,7 +907,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 		    out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1, c2, dict)
 		    out2 = t(out2)
 		    
-		    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
+		    colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "), paste("Analys", indxg, comparMethod,"GeoMean", c1, sep=" "), paste("Analys", indxg, comparMethod,"GeoMean", c2, sep=" "), paste("Analys", indxg, comparMethod,"FolChGeoMean", sep=" "))
 		    #print(head(out2))
 		    geneName = rownames(out2)
 		    out = cbind(geneName, out2,out1)
@@ -888,7 +931,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    # discards the first column of method used
 	    out = out[,-1]
 
-	    colnames(out) = c(paste("Analys", indxg, method_label,"Mean", c1, sep=" "), paste("Analys", indxg, method_label,"Mean", c2, sep=" "), paste("Analys", indxg, method_label,"FoldChange", sep=" "), paste("Analys", indxg, method_label,"Median", c1, sep=" "), paste("Analys", indxg, method_label,"Median", c2, sep=" "), paste("Analys", indxg, method_label,"FolChMedian", sep=" "), paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
+	    colnames(out) = c(paste("Analys", indxg, method_label,"Mean", c1, sep=" "), paste("Analys", indxg, method_label,"Mean", c2, sep=" "), paste("Analys", indxg, method_label,"FoldChange", sep=" "), paste("Analys", indxg, method_label,"Median", c1, sep=" "), paste("Analys", indxg, method_label,"Median", c2, sep=" "), paste("Analys", indxg, method_label,"FolChMedian", sep=" "), paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "), paste("Analys", indxg, method_label,"GeoMean", c1, sep=" "), paste("Analys", indxg, method_label,"GeoMean", c2, sep=" "), paste("Analys", indxg, method_label,"FolChGeoMean", sep=" "))
 
 	    # calculate FDR
 	    FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")

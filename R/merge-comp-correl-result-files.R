@@ -39,7 +39,6 @@ p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.
 p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.1, type="numeric") 
 
 
-
 p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
 p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
