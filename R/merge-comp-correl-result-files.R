@@ -453,7 +453,8 @@ write(strr, file=outputFile1)
 # this finds the analysis number 
 #------------------------------------------------------------------
 find_analysis_number = function(x){
-   res = as.numeric(str_match(x, "Analys ([0-9]+) .*")[,2])
+   #res = as.numeric(str_match(x, "Analys ([0-9]+) .*")[,2])
+   res = str_match(x, "Analys ([0-9]+-?[0-9]*) .*")[,2]
    res
 }
 
