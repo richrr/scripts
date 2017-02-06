@@ -503,8 +503,10 @@ CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df){
   
   o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(res_directory, "per_analysis/",analyses, paste(c("-p", pvalThreshold), collapse=''), "-consis.csv", sep=''))
   
-  calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, TRUE)
-  
+  #print(head(tmp_out_df))
+  if(nrow(tmp_out_df) > 0){ # if no genes have reached uptil this point, no point to call the function
+      calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, TRUE)
+  }
 
 }
 
