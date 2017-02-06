@@ -809,7 +809,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			if(ncol(resultsdt) > 3){
 			    resultsdt = resultsdt[, 1:3]
 			}
-
+			
 			#A Venn diagram showing numbers of genes significant in each comparison can be obtained from
 			pdf(paste("Analys", indxg, "no-fdr-limma-venn.pdf" , sep='-'))
 			vennDiagram(resultsdt)
@@ -827,9 +827,11 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
             
             # add the base statistics and the t test results		
 			for (contarst in 1:length(comparisonsargs)){
+			    indxg_ = paste(c(indxg, contarst), collapse='-') # to keep track of the comparisons in each analysis
+		    	
 			    tmpout = topTable(fit2[lgenes,],coef=contarst,sort="none",n=Inf, adjust="BH") # in order of lgenes
 			    tmpout = tmpout[, -2] # get rid of the Average express across ALL samples (c1 and c2 category)
-		    	colnames(tmpout) = c(paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"limma t",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"pvalue",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"FDR",sep=" "), paste("Analys", indxg, comparMethod,comparisonsargs[contarst],"log_odds_deg",sep=" "))
+		    	colnames(tmpout) = c(paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limmaslog2FC=meanA-meanB",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"limma t",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"pvalue",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"FDR",sep=" "), paste("Analys", indxg_, comparMethod,comparisonsargs[contarst],"log_odds_deg",sep=" "))
 			    #print(head(tmpout))
 			    
 			    c1_c2 = unlist(strsplit(unlistedres[contarst], "_vs_"))
@@ -837,7 +839,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			    c2_ = c1_c2[2]
 		    	out2 = sapply(lgenes, GetSimpleStats, subsetexpressionData, c1_, c2_, dict)
 		    	out2 = t(out2)
-		    	colnames(out2) = c(paste("Analys", indxg, comparMethod,"Mean", c1_, sep=" "), paste("Analys", indxg, comparMethod,"Mean", c2_, sep=" "), paste("Analys", indxg, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg, comparMethod,"Median", c1_, sep=" "), paste("Analys", indxg, comparMethod,"Median", c2_, sep=" "), paste("Analys", indxg, comparMethod,"FolChMedian", sep=" "))
+		    	colnames(out2) = c(paste("Analys", indxg_, comparMethod,"Mean", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Mean", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FoldChange", sep=" "), paste("Analys", indxg_, comparMethod,"Median", c1_, sep=" "), paste("Analys", indxg_, comparMethod,"Median", c2_, sep=" "), paste("Analys", indxg_, comparMethod,"FolChMedian", sep=" "))
 		    	#print(head(out2))
 		    	
 				out = cbind(out, out2, tmpout)
