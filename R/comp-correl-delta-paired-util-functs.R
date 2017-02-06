@@ -804,14 +804,14 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 			
 			#Note that toptable technically does not filter, it only sorts as per p-value
 			#The outcome of each hypothesis test can be assigned using
-			resultsdt <- decideTests(fit2, adjust.method = "none", )
+			resultsdt <- decideTests(fit2, adjust.method = "none" )
 			#print(resultsdt)
 			if(ncol(resultsdt) > 3){
 			    resultsdt = resultsdt[, 1:3]
 			}
 			
 			#A Venn diagram showing numbers of genes significant in each comparison can be obtained from
-			pdf(paste("Analys", indxg, "no-fdr-limma-venn.pdf" , sep='-'))
+			pdf(paste("Analys", indxg, "no-fdr-limma-first-3-comp-venn.pdf" , sep='-'))
 			vennDiagram(resultsdt)
 			dev.off()
 			
