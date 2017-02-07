@@ -32,7 +32,7 @@ p <- add_argument(p, "--majority", help="the element is consistent across MAJORI
 # thresholds to check consistency
 p <- add_argument(p, "--correlThreshold", help="correlThreshold", default=0, type="numeric")
 p <- add_argument(p, "--pvalThreshold", help="pvalThreshold", default=0.03, type="numeric") # individual Pvalue Cutoff
-p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=1, type="numeric") # if the data is log transformed, we calc fold change by log(A/B) which is log(A) - log (B), so the difference is compared against 0. since log transform is default the arg defaults to 0. use 1 if using non log transformed data
+p <- add_argument(p, "--foldchThreshold", help="foldchThreshold", default=0, type="numeric") # if the data is log transformed, we calc fold change by log(A/B) which is log(A) - log (B), so the difference is compared against 0. since log transform is default the arg defaults to 0. use 1 if using non log transformed data
 
 # use these only in case of genes (not pairs)
 p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.05, type="numeric") 
