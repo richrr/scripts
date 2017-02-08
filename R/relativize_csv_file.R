@@ -6,6 +6,14 @@ args = commandArgs(trailingOnly=TRUE)
 #print(length(args))
 
 
+
+pow <- function(x=10, y=6) {
+   # function to print x raised to the power y
+   result <- x^y
+   return(result)
+}
+
+
 relativize = function(infile){
 	df = read.csv(infile, header=T, check.names=F, row.names=1)
 	reldf = df/sum(df)
@@ -15,8 +23,19 @@ relativize = function(infile){
 }
 
 
+relativize_multply_million = function(infile){
+	df = read.csv(infile, header=T, check.names=F, row.names=1)
+	reldf = df/sum(df)
+	mill_reldf = reldf * pow(10, 6)
+	ID = rownames(df)
+	mill_reldf = cbind(ID, mill_reldf)
+	write.csv(reldf, paste(infile, "million.rel.csv", sep=''), quote=F, row.names=F)
+}
+
+
 relativize(args[1])
 
+relativize_multply_million(args[1])
 
 
 
