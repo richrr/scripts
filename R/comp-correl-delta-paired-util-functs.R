@@ -1335,12 +1335,17 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
         fold_change_mean = fold_change_mean_ca/fold_change_mean_cb
         fold_change_median = fold_change_median_ca/fold_change_median_cb
     
-        p = t.test(ca,cb)
-        #print(p)
-        #print(mean_ca)
-        #print(mean_cb)
-        outLine = as.matrix(c(p$method, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median, p$p.value))
-        
+    	#https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
+    	obj<-try(t.test(ca,cb), silent=TRUE)
+		if (is(obj, "try-error")) {
+		     outLine = as.matrix(c(NA, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median,  NA)) 
+		} else { 	
+			p = t.test(ca,cb)
+			#print(p)
+			#print(mean_ca)
+			#print(mean_cb)
+			outLine = as.matrix(c(p$method, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median, p$p.value))
+        }
     }else if(comparMethod == 'mw'){
     
         # note that this fold change is calc differently; it is ratio of fold changes
