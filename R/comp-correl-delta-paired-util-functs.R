@@ -1242,6 +1242,11 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     c3 = numericizeVector(as.vector(edata[lgene, idxs3]))
     c4 = numericizeVector(as.vector(edata[lgene, idxs4]))
 
+    #print(c1)
+    #print(c2)
+    #print(c3)
+    #print(c4)
+    
     ca = ''
     cb = ''
     ca_fc = ''
@@ -1257,6 +1262,7 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	ca_fc = c1/c2
     } else {
         ca[1:3] <- NA  # since we expect this to NA
+        ca_fc[1:3] <- NA
     }
 
     if((sum(!is.na(c3)) >= 3) & (sum(!is.na(c4)) >= 3)){
@@ -1270,6 +1276,7 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	cb_fc = c3/c4
     } else {
         cb[1:3] <- NA  # since we expect this to NA
+        cb_fc[1:3] <- NA
     }
 
 
@@ -1315,8 +1322,12 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
         fold_change_median_cb = median(cb_fc, na.rm=TRUE)
     } 
    
+   #print(ca)
+   #print(cb)
+   #print(ca_fc)
+   #print(cb_fc)
 
-    if(sum(!is.na(ca)) < 3 || sum(!is.na(cb)) < 3){
+    if((sum(!is.na(ca)) < 3) || (sum(!is.na(cb)) < 3)  ||  (sum(is.finite(ca)) < 3) || (sum(is.finite(cb)) < 3)){
         outLine = as.matrix(c(NA, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median,  NA)) 
     } else if(comparMethod == 'tt'){
     
