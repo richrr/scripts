@@ -240,11 +240,14 @@ genes1 = genes1[order(genes1)] # ascending sort
 genes2 = as.vector(list2[!duplicated(list2[,1]),1] )
 genes2 = genes2[order(genes2)]
 
+#print(genes1)
+#print(genes2)
 
 pairs = ''
 if(!argv$noCorrelationsRequested){
   if (!file.exists(pairFile)){
-	if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
+	#if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
+	if(identical(genes1, genes2)){
 		pairs = t(combn(genes1,2))[,2:1]
 		# use below for testing purposes and/or when calculating partial correlation # has same gene pairs (e.g. gene1 gene1)
                 #pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE) # from https://gist.github.com/randy3k/10015496 for testing purposes 
@@ -424,10 +427,12 @@ for(indx in 1:nrow(AnalysToDoList)){
             next
         }
 
-        genes = ''
-        if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then use genes1
+    genes = ''
+	#if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
+	if(identical(genes1, genes2)){
 	    genes = genes1
 	}else{                              # else take union
+	    #print("Reached here")
 	    genes = union(genes1,genes2)  
 	} # end else
 

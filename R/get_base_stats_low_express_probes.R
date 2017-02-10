@@ -9,7 +9,7 @@ get_base_stats_exp_data = function (infile, backgrond, outputFile, sample_perc_t
 	#infile = "~/Morgun_Lab/richrr/Cervical_Cancer/Data/gene-expression/HumanHT12v4_IlluminaGeneExpr_QuantileNorm_Cohort2.csv"
 	#backgrond = 110 #150 #70
 
-	df = read.csv(infile,row.names = 1, header=T, check.names=F)
+	df = read.csv(infile,row.names = 1, header=T, check.names=F,na.strings=c("","na","NA", "Na", "NaN"))
 
 	#head(df)
 
