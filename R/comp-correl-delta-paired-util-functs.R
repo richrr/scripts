@@ -1242,17 +1242,38 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     c3 = numericizeVector(as.vector(edata[lgene, idxs3]))
     c4 = numericizeVector(as.vector(edata[lgene, idxs4]))
 
-    # calculate delta
-    #ca = c1-c2
-    #cb = c3-c4
+    ca = ''
+    cb = ''
+    ca_fc = ''
+    cb_fc = ''
+    if((sum(!is.na(c1)) >= 3) & (sum(!is.na(c2)) >= 3)){
+    	# calculate delta
+    	#ca = c1-c2
 
-    # calculate delta normalized to starting value
-    ca = (c1-c2)/c2
-    cb = (c3-c4)/c4
+    	# calculate delta normalized to starting value
+    	ca = (c1-c2)/c2
 
-    # calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
-    ca_fc = c1/c2
-    cb_fc = c3/c4
+    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
+    	ca_fc = c1/c2
+    } else {
+        ca[1:3] <- NA  # since we expect this to NA
+    }
+
+    if((sum(!is.na(c3)) >= 3) & (sum(!is.na(c4)) >= 3)){
+    	# calculate delta
+    	#cb = c3-c4
+
+    	# calculate delta normalized to starting value
+    	cb = (c3-c4)/c4
+
+    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
+    	cb_fc = c3/c4
+    } else {
+        cb[1:3] <- NA  # since we expect this to NA
+    }
+
+
+
 
     outLine = ''
     p = ''
