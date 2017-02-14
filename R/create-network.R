@@ -50,6 +50,11 @@ combinedPvalueCutoff = argv$combPvalCutoff
 combinedFDRCutoff = argv$combFDRCutoff
 FoldChangeFile = argv$foldchange
 search_group = argv$group
+search_group_santized = gsub('+', '_', search_group, fixed=TRUE)
+#print(search_group_santized)
+search_group_santized = gsub("\\", '', search_group_santized, fixed=TRUE)
+#print(search_group_santized)
+
 foldchthresh = argv$foldchthresh
 logbase = argv$logbase
 
@@ -66,7 +71,7 @@ if(analysisfc != "ALL" || analysiscorr != "ALL"){
   outputFile = gsub(' ', '_', outputFile)
 }
 
-networkFile = paste(c(outputFile, search_group, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
+networkFile = paste(c(outputFile, search_group_santized, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
 
 
 #------------------------------------------------------------------------------------------------
@@ -131,7 +136,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
     
     plt = cbind(combined_fdr, puc_percent)
     
-    pdf(paste(search_group, str, 'FDRvsPUC.pdf', sep='-'))
+    pdf(paste(search_group_santized, str, 'FDRvsPUC.pdf', sep='-'))
     plot(combined_fdr, puc_percent, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2, ylim=c(0, 100) ) 
     #plot(plt, type="o", ylab="PUC(%)", xlab="combined FDR", pch=10, cex=.2 ) 
     
@@ -164,10 +169,12 @@ calc_PUC_at_thresholds = function(df, str='all'){
    }
    print(CorrAnalysColnames)
    outForPUC = outForPUC[,CorrAnalysColnames]
+   #print(head(outForPUC))
    
    # calculate combined Pvalue for interest group
    PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
    PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
+   print(PvalueColnames)
    total_numb_input_files = length(PvalueColnames)
    interestedPvalueData = outForPUC[,PvalueColnames]
    interestedPvalueData = as.matrix(interestedPvalueData)
@@ -185,6 +192,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    # calculate median coefficient for interest
    CoefficientColnames = colnames(outForPUC)[grep("Coefficient",colnames(outForPUC))]
    CoefficientColnames = CoefficientColnames[grep(search_group,CoefficientColnames)]
+   print(CoefficientColnames)
    interestedCoefficientData = outForPUC[,CoefficientColnames]
    interestedCoefficientData = as.matrix(interestedCoefficientData)
    interestedCoefficientData = apply(interestedCoefficientData,2,function(x){as.numeric(as.vector(x))})
@@ -195,8 +203,8 @@ calc_PUC_at_thresholds = function(df, str='all'){
    #calculate FDR for combined pvalue
    combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
    result = cbind(result,combinedFDR)
-   
-   write.csv (result,paste( outputFile, search_group, "tmp-out.csv", sep='-'))
+   print(head(result))
+   write.csv (result,paste( outputFile, search_group_santized, "tmp-out.csv", sep='-'))
    
  
    # calculate median FoldChange
@@ -338,9 +346,9 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 
     PUCoutfile = ''
     if(noPUC){
-           PUCoutfile = paste(outputFile, search_group, "noPUC-output.csv",sep='-')
+           PUCoutfile = paste(outputFile, search_group_santized, "noPUC-output.csv",sep='-')
     } else {
-         PUCoutfile = paste(outputFile, search_group, "PUC-output.csv",sep='-')
+         PUCoutfile = paste(outputFile, search_group_santized, "PUC-output.csv",sep='-')
     }
 
     if(file.exists(PUCoutfile))
