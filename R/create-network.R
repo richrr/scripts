@@ -21,6 +21,7 @@ p <- add_argument(p, "--indivPvalCutoff", help="individualPvalueCutoff", default
 p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") # 0.05
 p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.3, type="numeric") # 
 p <- add_argument(p, "--foldchthresh", help="fold change threshold", default=0, type="numeric") # default is logged data so check whether greater than 0. use 1 for unlog data
+p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
 
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
 #p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
@@ -50,6 +51,7 @@ combinedFDRCutoff = argv$combFDRCutoff
 FoldChangeFile = argv$foldchange
 search_group = argv$group
 foldchthresh = argv$foldchthresh
+logbase = argv$logbase
 
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
@@ -219,6 +221,14 @@ calc_PUC_at_thresholds = function(df, str='all'){
    FoldChangeMetabolic = cbind(FoldChangeMetabolic,combinedFoldChange)
    }
 
+
+pow <- function(x=10, y=6) {
+   # function to print x raised to the power y
+   result <- x^y
+   return(result)
+}
+
+
 ###########################################################################################################
 #calc PUC
 ###########################################################################################################
@@ -278,17 +288,28 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	# calculate fold change direction for each partner
 	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
 	FoldChangeData = outForPUC[,FoldChangeColnames]
-	#print(head(FoldChangeData))
-	FoldChangeDirection = NA
-	if (foldchthresh==0){
-	    FoldChangeDirection <- as.matrix(FoldChangeData)
-	    FoldChangeDirection[FoldChangeDirection<0] <- -1
-	    FoldChangeDirection[FoldChangeDirection>=0] <- 1
-	    FoldChangeDirection = as.data.frame(FoldChangeDirection)
-	    #print(head(FoldChangeDirection))
-	} else { # for unlog data
-	    FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
+	
+	if(logbase != 0){
+	    if(logbase == 1) {
+	          FoldChangeData = apply(FoldChangeData, 2, function(x) {exp(x)})    # using the base e
+	    } else {
+	          FoldChangeData = apply(FoldChangeData, 2, function(x) {pow(logbase, x)})
+	    }
 	}
+
+	#print(head(FoldChangeData))
+	
+	FoldChangeDirection = NA
+
+	#if (foldchthresh==0){
+	#    FoldChangeDirection <- as.matrix(FoldChangeData)
+	#    FoldChangeDirection[FoldChangeDirection<0] <- -1
+	#    FoldChangeDirection[FoldChangeDirection>=0] <- 1
+	#    FoldChangeDirection = as.data.frame(FoldChangeDirection)
+	#    #print(head(FoldChangeDirection))
+	#} else { # for unlog data
+	    FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
+	#}
 	names(FoldChangeDirection) = c()
 	colnames(FoldChangeDirection) = paste(colnames(FoldChangeData),"FoldChangeDirection",sep=".")
 	
