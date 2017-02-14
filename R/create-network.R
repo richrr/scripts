@@ -229,6 +229,17 @@ pow <- function(x=10, y=6) {
 }
 
 
+unlog <- function(FoldChangeData, base){
+	if(logbase != 0){
+	    if(logbase == 1) {
+	          FoldChangeData = apply(FoldChangeData, 2, function(x) {exp(x)})    # using the base e
+	    } else {
+	          FoldChangeData = apply(FoldChangeData, 2, function(x) {pow(base, x)})
+	    }
+	}
+	return(FoldChangeData)
+}
+
 ###########################################################################################################
 #calc PUC
 ###########################################################################################################
@@ -266,6 +277,11 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	FoldMetab2_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner2"]),c("geneName", FoldChangeCol)]
 	colnames(FoldMetab2_InPair) = c("partner2InFold","partner2_FoldChange")
 
+        FoldMetab1_InPair = cbind(FoldMetab1_InPair[, 1, drop=F], unlog(FoldMetab1_InPair[, 2, drop=F], logbase))
+	FoldMetab2_InPair = cbind(FoldMetab2_InPair[, 1, drop=F], unlog(FoldMetab2_InPair[, 2, drop=F], logbase))
+	#print(head(FoldMetab1_InPair))
+	#print(head(FoldMetab2_InPair))
+	
 	outForPUC = cbind(outForPUC,FoldMetab1_InPair,FoldMetab2_InPair)
 	}
 	
@@ -289,13 +305,6 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
 	FoldChangeData = outForPUC[,FoldChangeColnames]
 	
-	if(logbase != 0){
-	    if(logbase == 1) {
-	          FoldChangeData = apply(FoldChangeData, 2, function(x) {exp(x)})    # using the base e
-	    } else {
-	          FoldChangeData = apply(FoldChangeData, 2, function(x) {pow(logbase, x)})
-	    }
-	}
 
 	#print(head(FoldChangeData))
 	
