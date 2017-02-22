@@ -174,7 +174,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    # calculate combined Pvalue for interest group
    PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
    PvalueColnames = PvalueColnames[grep(search_group,PvalueColnames)]
-   print(PvalueColnames)
+   #print(PvalueColnames)
    total_numb_input_files = length(PvalueColnames)
    interestedPvalueData = outForPUC[,PvalueColnames]
    interestedPvalueData = as.matrix(interestedPvalueData)
@@ -192,7 +192,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    # calculate median coefficient for interest
    CoefficientColnames = colnames(outForPUC)[grep("Coefficient",colnames(outForPUC))]
    CoefficientColnames = CoefficientColnames[grep(search_group,CoefficientColnames)]
-   print(CoefficientColnames)
+   #print(CoefficientColnames)
    interestedCoefficientData = outForPUC[,CoefficientColnames]
    interestedCoefficientData = as.matrix(interestedCoefficientData)
    interestedCoefficientData = apply(interestedCoefficientData,2,function(x){as.numeric(as.vector(x))})
@@ -203,7 +203,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    #calculate FDR for combined pvalue
    combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
    result = cbind(result,combinedFDR)
-   print(head(result))
+   #print(head(result))
    write.csv (result,paste( outputFile, search_group_santized, "tmp-out.csv", sep='-'))
    
  

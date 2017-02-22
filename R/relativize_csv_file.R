@@ -33,7 +33,7 @@ relativize_multply_million = function(infile){
 	mill_reldf = reldf * pow(10, 6)
 	ID = rownames(df)
 	mill_reldf = cbind(ID, mill_reldf)
-	write.csv(mill_reldf, paste(infile, ".million.rel.csv", sep=''), quote=F, row.names=F)
+	write.csv(mill_reldf, paste(infile, ".rel.million.csv", sep=''), quote=F, row.names=F)
 }
 
 
