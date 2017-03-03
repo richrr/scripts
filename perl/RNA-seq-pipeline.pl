@@ -65,6 +65,8 @@ my $bowind;
 my $paired;
 my $help;
 
+#my $min_read_length;
+
 GetOptions (
 			"help"  => \$help,   # flag.
 			"version=s" => \$version,    # string
@@ -322,5 +324,14 @@ sub runTopHat {
 	print ($cmd,"\n\n");
 	`$cmd`;	
 }
+
+# coverage search on
+#sub runTopHat {
+#	my ($cutAdaptorFile, $tophatOutFolder) = @_;
+#	my $cmd = "$tophatProgram --coverage-search -G $gf -p 8 -o $tophatOutFolder $bowind $cutAdaptorFile";
+#	print ($cmd,"\n\n");
+#	`$cmd`;	
+#}
+
 processFastq;
 
