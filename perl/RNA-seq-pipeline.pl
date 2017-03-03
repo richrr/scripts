@@ -107,12 +107,13 @@ sub usage {
 
    print STDERR (
       $message,
-      "usage: $command --inputFolder inputFolder [--outputFolder outputFolder] [--paired] --ensembl[--ucsc] --human[|--mouse] --version\n" .
+      "usage: $command --inputFolder inputFolder [--outputFolder outputFolder] [--paired] --ensembl[|--ucsc] --human[|--mouse] [--lexogen] --version version\n" .
       "       Organism is required\n" .
       "       Namespace is required\n" .
       "       Version of genome and annotation is required\n" .
       "       Input folder defaults to ./\n" .
       "       Output folder defaults to ./RNA-SEQ\n" .
+	  "       Defaults to cutadapt. Specify --lexogen if needed\n" .
       "       Defaults to single end. Specify --paired if needed\n"
    );
 
@@ -234,12 +235,25 @@ sub cutadapt_pe{
 #use sequencePreprocessing::FileHandle;
 
 
+sub lexogen_cleaning{
+	my ($inputFile, $OutPutFile) = @_;
+	my $cmd="gunzip < $inputFile > $OutPutFile";
+	`$cmd` ;
+	
+	my $cleanOutPutFile= "$OutPutFile._ft12trimmed_q20_clean" ;
+	my $bshcmd="bash /nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/bbduk.sh in=$OutPutFile out=$cleanOutPutFile ref=/nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/resources/adapters.fa k=13 ktrim=r forcetrimleft=12 useshortkmers=t mink=5 qtrim=r trimq=20 minlength=20";
+	`$bshcmd` ;
+	return $cleanOutPutFile;
+}
+
+
 sub processFastq{
 	my @gzFilesR2 ;
 	my @gzFilesR1 ;
 	
 	if($lexogen){
-		@gzFilesR1 = `ls $inputFolder | grep ".fastq" | grep "trimmed" | grep "clean" | grep "lane" | grep "_R1_" `; 
+		#@gzFilesR1 = `ls $inputFolder | grep ".fastq" | grep "trimmed" | grep "clean" | grep "lane" | grep "_R1_" `; 
+		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
 	}
 	else{
 		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
@@ -272,11 +286,15 @@ sub processFastq{
 			if($paired)	{
 				$fileName = "$fileNameR1-$fileNameR2";
 			}
+						
 			$fileName =~s/_001.fastq.gz//g;
 			
 			if($lexogen){
+				# do the uncompressing and suggested cleaning
 				$InputFastqFileR1 = "$inputFolder/$fileNameR1";
-				$OutPutFileR1 = $InputFastqFileR1 ;
+				#$OutPutFileR1 = $InputFastqFileR1 ;
+				$OutPutFileR1 = "$outFolder/$fileNameR1.$filtertool";
+				$OutPutFileR1 = lexogen_cleaning($InputFastqFileR1, $OutPutFileR1);
 			
 			} else {
 				$InputFastqFileR1 = "$inputFolder/$fileNameR1";
