@@ -65,6 +65,8 @@ my $bowind;
 my $paired;
 my $help;
 
+my $lexogen; 
+
 #my $min_read_length;
 
 GetOptions (
@@ -76,6 +78,7 @@ GetOptions (
             "ensembl"  => \$ensembl,   # flag. # Ensembl returns ensembl ids
             "human"  => \$human,   # flag.
             "mouse"  => \$mouse,   # flag.
+			"lexogen"  => \$lexogen,   # flag. #uses cutadapt by default
 			"paired"  => \$paired),   # flag. # default is single
 or usage("Invalid commmand line options.");
 
@@ -191,7 +194,11 @@ $bowind = $bt2_hash{$version};
 #																	use prinseq
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-my $outFolder = "$outputFolder.AfterCutAdapt";
+my $filtertool = 'CutAdapt';
+if ($lexogen) {$filtertool = 'Lexogen';}
+print "\nUsing $filtertool\n";
+
+my $outFolder = "$outputFolder.After$filtertool";
 `mkdir $outFolder` if ( ! -d $outFolder);
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -229,10 +236,16 @@ sub cutadapt_pe{
 
 sub processFastq{
 	my @gzFilesR2 ;
+	my @gzFilesR1 ;
 	
-	my @gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `;     
-    if($paired)	{
-		@gzFilesR2 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R2_" `;
+	if($lexogen){
+		@gzFilesR1 = `ls $inputFolder | grep ".fastq" | grep "trimmed" | grep "clean" | grep "lane" | grep "_R1_" `; 
+	}
+	else{
+		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
+		if($paired)	{
+			@gzFilesR2 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R2_" `;
+		}
 	}
 	#print @gzFilesR1,"\n" , @gzFilesR2,"\n\n"; 
     #print "Size= ", scalar @gzFilesR1 , " ", $#gzFilesR1+1 , "\n";
@@ -240,6 +253,8 @@ sub processFastq{
         for(my $i=0; $i <= $#gzFilesR1; $i++){
 		
 			my $fileNameR2 ;
+			my $InputFastqFileR1;
+			my $OutPutFileR1 ;
 			my $InputFastqFileR2;
 			my $OutPutFileR2;
 			my $cutAdaptorFileR2;
@@ -251,7 +266,7 @@ sub processFastq{
 				$fileNameR2 = $gzFilesR2[$i] ;        
 				chomp $fileNameR2 ;
 			}
-			print "$fileNameR1 $fileNameR2\n"; # next;
+			print "File $fileNameR1 $fileNameR2\n"; # next;
 			
 			my $fileName = "$fileNameR1";
 			if($paired)	{
@@ -259,18 +274,23 @@ sub processFastq{
 			}
 			$fileName =~s/_001.fastq.gz//g;
 			
-			my $InputFastqFileR1 = "$inputFolder/$fileNameR1";
-			my $OutPutFileR1 = "$outFolder/$fileNameR1.cutadapt";
-
-			if($paired)	{
-				$InputFastqFileR2 = "$inputFolder/$fileNameR2";
-				$OutPutFileR2 = "$outFolder/$fileNameR2.cutadapt";
-				cutadapt_pe($InputFastqFileR1, $OutPutFileR1, $InputFastqFileR2, $OutPutFileR2) if ((! -e "$OutPutFileR1") && (! -e "$OutPutFileR2"));
+			if($lexogen){
+				$InputFastqFileR1 = "$inputFolder/$fileNameR1";
+				$OutPutFileR1 = $InputFastqFileR1 ;
+			
 			} else {
-				# run single end cutadapt
-				cutadapt($InputFastqFileR1, $OutPutFileR1) if (! -e "$OutPutFileR1");
-			}
+				$InputFastqFileR1 = "$inputFolder/$fileNameR1";
+				$OutPutFileR1 = "$outFolder/$fileNameR1.$filtertool";
 
+				if($paired)	{
+					$InputFastqFileR2 = "$inputFolder/$fileNameR2";
+					$OutPutFileR2 = "$outFolder/$fileNameR2.$filtertool";
+					cutadapt_pe($InputFastqFileR1, $OutPutFileR1, $InputFastqFileR2, $OutPutFileR2) if ((! -e "$OutPutFileR1") && (! -e "$OutPutFileR2"));
+				} else {
+					# run single end cutadapt
+					cutadapt($InputFastqFileR1, $OutPutFileR1) if (! -e "$OutPutFileR1");
+				}
+			}
 			my $cutAdaptorFileR1 = $OutPutFileR1;
 			if($paired)	{
 				$cutAdaptorFileR2 = $OutPutFileR2;
