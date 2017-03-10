@@ -240,8 +240,8 @@ sub lexogen_cleaning{
 	my $cmd="gunzip < $inputFile > $OutPutFile";
 	`$cmd` ;
 	
-	my $cleanOutPutFile= "$OutPutFile._ft12trimmed_q20_clean" ;
-	my $bshcmd="bash /nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/bbduk.sh in=$OutPutFile out=$cleanOutPutFile ref=/nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/resources/adapters.fa k=13 ktrim=r forcetrimleft=12 useshortkmers=t mink=5 qtrim=r trimq=20 minlength=20";
+	my $cleanOutPutFile= "$OutPutFile._ft12trimmed_q15_clean" ;
+	my $bshcmd="bash /nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/bbduk.sh in=$OutPutFile out=$cleanOutPutFile ref=/nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/resources/adapters.fa k=13 ktrim=r forcetrimleft=12 useshortkmers=t mink=5 qtrim=r trimq=15 minlength=20";
 	`$bshcmd` ;
 	return $cleanOutPutFile;
 }
