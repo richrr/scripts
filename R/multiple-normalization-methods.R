@@ -35,6 +35,8 @@ p <- add_argument(p, "--cs", help="Cubic Spline Normalization", flag=TRUE)
 p <- add_argument(p, "--a", help="Auto Scaling", flag=TRUE)
 p <- add_argument(p, "--p", help="Pareto Scaling", flag=TRUE)
 p <- add_argument(p, "--v", help="Variance Stabilization Normalization. It takes long time to run", flag=TRUE)
+p <- add_argument(p, "--logbase", help="calc log (1+x) using the base", default=0) # allowed: 0 (no log), 1 (e), 2, 10
+p <- add_argument(p, "--unlog", help="unlog the data then minus 1", flag=TRUE) # default no unlog
 
 
 
@@ -44,6 +46,7 @@ argv <- parse_args(p)
 
 outputFile = argv$output
 symbleColumnName =  argv$symbolColumnName
+logbase = argv$logbase
 
 # set all normalization flags to TRUE
 if(argv$all){
@@ -75,6 +78,35 @@ expressionData = read.csv( argv$file, header=TRUE, check.names=FALSE, na.strings
 data = data.matrix(expressionData)
 
 
+if(logbase != 0){
+    if(logbase == 1) {
+          data = log(data + 1)  # using the default base e i.e. exp(1)
+    } else {
+          data = log(data + 1, logbase)
+    }
+}
+
+
+pow <- function(x=10, y=6) {
+   # function to print x raised to the power y
+   result <- x^y
+   return(result)
+}
+
+
+unlog_minus_1 <- function(InData, base){
+	if(base != 0){
+	    if(base == 1) {
+	          InData = apply(InData, 2, function(x) {(exp(x) - 1)})    # using the base e
+	    } else {
+	          InData = apply(InData, 2, function(x) {(pow(base, x) - 1)})
+	    }
+	}
+	return(InData)
+}
+
+
+
 # output to file
 send_to_write = function(matrix, ofile, delim=','){
     # this keeps the header of row names empty
@@ -104,6 +136,11 @@ if(argv$q){
         print("Running Quantile")
 	normalize.quantile <- get("normalize.quantiles", en=asNamespace("affy"))
 	quantile.data <- normalize.quantile(data)
+	
+	# if unlog
+	if(argv$unlog){
+		quantile.data = unlog_minus_1(quantile.data, logbase)
+	}
 	
 	# add row and column names
 	quantile.data = data.frame(quantile.data) 

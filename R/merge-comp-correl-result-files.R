@@ -1,5 +1,9 @@
 ## to do:
 # implement code for majority of datasets as consistency
+# NOTE: that using delta comparison, the fc needs to be compared against 1, so if you used log scale for previous
+# data analysis, the default for this script (0) is not the correct result. However, even in this case
+# the output files are consistent for fc>0 and pval, so just process the output files in the per analysis folder
+# for delta by checking for fc against 1. 
 
 # Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/merge-comp-correl-result-files.R --files network_spearm-manwhit_expt1_comp-output.csv network_spearm-manwhit_expt2_comp-output.csv --parallel --output merged_two_expts_sp_mw_files_comp_all_
 
@@ -691,7 +695,7 @@ if(argv$warnings){print(warnings())}
 
 print("Finished performing the requested analyses.")
 
-print("You may want to run create-network.R next.")
+print("You may want to run create-network.R next. \n REMEMER to run process-delta-consistency.R if your code has delta comparisons.")
 
 
 
