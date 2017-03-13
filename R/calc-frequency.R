@@ -1,9 +1,9 @@
 ##### to do: 
-## partial correlation
 
 
 
-# Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/calc-frequency.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID --genNetwork
+# Usage: Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/calc-frequency.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID 
+
 
 
 # Allowed analyses (conditions): 

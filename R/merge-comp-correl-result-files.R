@@ -47,6 +47,8 @@ p <- add_argument(p, "--warnings", help="print warnings", flag=TRUE)
 p <- add_argument(p, "--foldchMean", help="use fold change from mean", flag=TRUE)  # default fold change is median
 p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows are analysis and columns are gene or pairs", flag=TRUE)  # easier for downstream grep of required analysis, do not use when you expect many genes or pairs since it might truncate when you open in excel or librecalc due ot limited columns
 
+p <- add_argument(p, "--runfreqmerge", help="run merging for freq. use only for genes NOT pairs", flag=TRUE)
+
 
  
 argv <- parse_args(p)
@@ -695,8 +697,35 @@ if(argv$warnings){print(warnings())}
 
 print("Finished performing the requested analyses.")
 
-print("You may want to run create-network.R next. \n REMEMER to run process-delta-consistency.R if your code has delta comparisons.")
 
+if(argv$runfreqmerge)
+{
+	print("Performing the frequency analyses.")
+
+
+	freqinfile = NA
+	for( numb in 1:length(argv$files)){
+	   fpaths = strsplit(argv$files[numb], "/")[[1]]  # split the path/filename and get path
+	   odir = paste(fpaths[1:(length(fpaths) -1)], collapse='/')
+
+	   freqdir = paste(odir, "freq", fpaths[length(fpaths)], sep='/') # path/freq/filename
+	   if(is.na(freqinfile)){
+		freqinfile = freqdir
+	   } else{
+		freqinfile = paste(freqinfile, freqdir, sep=' ')
+	   }
+	}
+
+
+	freqcmd= paste("Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/merge-calc-freq-result-files.R", "--files", freqinfile, "--parallel --output", argv$output, "--transposeOutput", "--pvalThreshold", argv$pvalThreshold, "--combPvalCutoff", argv$combPvalCutoff, "--combFDRCutoff", argv$combFDRCutoff, sep=" ")
+
+	print(freqcmd)
+	system(freqcmd, wait=TRUE)
+
+	print("Finished performing the requested frequency analyses.")
+}
+
+print("You may want to run create-network.R next. \n REMEMER to run process-delta-consistency.R if your code has delta comparisons.")
 
 
 

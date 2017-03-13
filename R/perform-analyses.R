@@ -3,7 +3,7 @@
 
 
 
-# Usage: Rscript /nfs1/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID --genNetwork
+# Usage: Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID 
 
 
 # Allowed analyses (conditions): 
@@ -613,6 +613,16 @@ write.csv(compout,paste(outputFile,"output.csv",sep='comp-'),row.names=FALSE)
 write.csv(folchout,paste(outputFile,"output.csv",sep='folch-'),row.names=FALSE)
 
 print("Finished performing the requested analyses.")
+
+print("Performing the frequency analyses.")
+
+fodir =  strsplit(argv$output, "/")[[1]]
+freqdir = paste(odir, "/freq/", fodir[length(fodir)], sep='')
+freqcmd= paste("Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/calc-frequency.R", argv$expressionDataFile, "--lists", list1File, list1File, "--mapFile", argv$mapFile, "--mapColumns", samplIdCol, exptCol, "--AnalysToDoList", argv$AnalysToDoList, "--comparMethod",  argv$comparMethod, "--correlMethod", argv$correlMethod, "--symbolColumnName", symbleColumnName, "--pairedInfoColumn", argv$pairedInfoColumn, "--output", freqdir, sep=" ")
+
+system(freqcmd, wait=TRUE)
+
+print("Finished performing the requested frequency analyses.")
 
 print("You may want to run merge-comp-correl-results-files.R next.")
 
