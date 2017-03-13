@@ -269,6 +269,10 @@ expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
 
+## keep only OTUs
+ oturows = grep("^OTU", rownames(expressionData), value = T)
+ expressionData =  expressionData[oturows ,]
+
 #if(logbase != 0){
 #    if(logbase == 1) {
 #          expressionData[, !names(expressionData) %in% c(symbleColumnName)] = log(expressionData[, !names(expressionData) %in% c(symbleColumnName)] + 1)  # using the default base e i.e. exp(1)
