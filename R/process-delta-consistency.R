@@ -26,8 +26,12 @@ check_delta_consistency = function(infile, total_numb_input_files, foldchVar = '
 		rows_pass_consistency = c(rows_pass_consistency, checkConsistency_across_expts(subset_df, total_numb_input_files))
 	}
 	outdf = outdf[rows_pass_consistency,]
+	# write the detailed output
 	outputFile = paste(infile,"delta-fc-fixed.csv",sep='-')
     write.csv(outdf, outputFile, row.names=FALSE, quote=F)
+	# write the names of the consistent genes
+	outputFile_consis = paste(outputFile,"consis_genes.csv",sep='-')
+    write.table(row.names(outdf), outputFile_consis, row.names=FALSE, quote=F, col.names=FALSE)
 	#s_df = 
 }
 
