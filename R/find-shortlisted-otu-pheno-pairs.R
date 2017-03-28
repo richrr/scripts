@@ -93,7 +93,7 @@ add_taxa_freq_cols = function(ids, cmpdf){
 		newcs = c()
 		for(c in colnames(res)){
 			
-			if(c == 'ID' || c == 'df$taxa' || c == "contrastFC" || c == "freqplayer") {
+			if(c == 'ID' || grepl("df\\$taxa" , c) || grepl("contrastFC", c) || grepl("freqplayer", c)) {
 				newc = c
 			} else {
 				numb = find_analysis_number_w_analys(c)
@@ -138,14 +138,23 @@ rownames(corrdf) = corrdf[,1]
 
 
 # only drop these since we still need to assign the analysis and group info
-remcols1= grep( "partner1." , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols2= grep( "partner2." , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols3= grep( "partner1InFold." , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols4= grep( "partner2InFold." , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols5= grep( "Direction" , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols6= grep( "PUC" , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols7= grep( "FDR" , colnames( corrdf ), fixed=TRUE, value=TRUE )
-remcols = c(remcols1, remcols2, remcols3, remcols4, remcols5, remcols6, remcols7)
+# remcols1= grep( "partner1[^_]" , colnames( corrdf ), fixed=TRUE, value=TRUE ) # this keeps "_"
+# remcols2= grep( "partner2[^_]" , colnames( corrdf ), fixed=TRUE, value=TRUE ) # this keeps "_"
+# remcols3= grep( "partner1InFold" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+# remcols4= grep( "partner2InFold" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+# remcols5= grep( "Direction" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+# remcols6= grep( "PUC" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+# remcols7= grep( "FDR" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+# remcols = c(remcols1, remcols2, remcols3, remcols4, remcols5, remcols6, remcols7)
+# corrdf = corrdf[ , -which(colnames(corrdf) %in% remcols)]  
+
+
+# only drop these since we still need to assign the analysis and group info
+remcols1= grep( "partner[1,2][^_].*|partner[1,2]$" , colnames( corrdf ), value=TRUE ) # this keeps "_"
+remcols2= grep( "Direction" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+remcols3= grep( "PUC" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+remcols4= grep( "FDR" , colnames( corrdf ), fixed=TRUE, value=TRUE )
+remcols = c(remcols1, remcols2, remcols3, remcols4)
 corrdf = corrdf[ , -which(colnames(corrdf) %in% remcols)]  
 
 
@@ -156,9 +165,13 @@ colnames(corrdf) = add_analysis_group_info(colnames(corrdf))
 remcols8= grep( "pvalue_" , colnames( corrdf ), fixed=TRUE, value=TRUE )
 corrdf = corrdf[ , -which(colnames(corrdf) %in% remcols8)]  
 
+contrstfcCol = "contrastFC"
+if("contrastFC.x" %in% colnames(cmpdf)){
+	contrstfcCol = "contrastFC.x"
+}
 
 # select the otus that have 1 in contrastFC and freqplayer
-selOTUs = cmpdf[cmpdf[,"contrastFC"]==1 & cmpdf[,"freqplayer"]==1,"ID"]
+selOTUs = cmpdf[cmpdf[,contrstfcCol]==1 & cmpdf[,"freqplayer"]==1,"ID"]
 
 # add the "<==>" string to avoid selecting other otus that are partial match of the shortlisted otus
 otu_pairs = paste(selOTUs, "<==>", sep='')
@@ -169,9 +182,38 @@ resdf = round_df(resdf, 2)
 
 cols_to_add = add_taxa_freq_cols(resdf$ID, cmpdf)
 resdf = cbind(resdf, cols_to_add)
-
-
 write.csv(resdf, paste(outstr , ".csv", sep=""), row.names=FALSE, quote=F)
 
+
+DirectionFunc = function(col){
+	
+    newcol = tryCatch(
+			{
+				as.numeric(col)/abs(as.numeric(col))
+			},
+			error=function(cond) {
+            # Choose a return value in case of error
+            return(col)
+			},
+			warning=function(cond) {
+            # Choose a return value in case of warning
+            return(col)
+			}
+			)
+	newcol
+}
+
+
+summarize_table = function(resdf){
+	# check if numeric & assign sign based on 1,-1,0 (NaN), NA
+	resdf = apply(resdf, 2, DirectionFunc)
+	#print(head(resdf))
+	return(resdf)
+
+}
+
+
+resdf = summarize_table(resdf)
+write.csv(resdf, paste(outstr , "-summary.csv", sep=""), row.names=FALSE, quote=F)
 
 #warnings()

@@ -270,7 +270,7 @@ if(!is.na(argv$correlation)){
        print(total_numb_sig_pairs)
        #print(sign_df)
        # no need to generate the figure
-       if(total_numb_sig_pairs==0){
+       if(total_numb_sig_pairs==0 || total_numb_sig_pairs>10){
            next
        }
 
@@ -278,7 +278,8 @@ if(!is.na(argv$correlation)){
        #png(paste(categ_name , '.png' , sep=''), width=1000, height=1200) 
        pdf(paste(categ_name , '.pdf' , sep=''), width=10, height=20) 
 
-
+		
+	
        if(total_numb_sig_pairs>1){
 
          # arrange plots in 2 column plots
