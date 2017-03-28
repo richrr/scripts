@@ -185,6 +185,7 @@ resdf = cbind(resdf, cols_to_add)
 write.csv(resdf, paste(outstr , ".csv", sep=""), row.names=FALSE, quote=F)
 
 
+# note that for correl, we might want to use something different.
 DirectionFunc = function(col){
 	
     newcol = tryCatch(
@@ -203,13 +204,26 @@ DirectionFunc = function(col){
 	newcol
 }
 
+# check if not na and assign 1 to numeric
+KeepNumericAs1 = function(x){
+	out = x
+	if(!is.na(x) & suppressWarnings(all(!is.na(as.numeric(as.character(x))))))
+	{
+	   		out = 1
+	}
+	# otherwise do nothing as out stays the string or na
+	out
+
+}
+
 
 summarize_table = function(resdf){
-	# check if numeric & assign sign based on 1,-1,0 (NaN), NA
-	resdf = apply(resdf, 2, DirectionFunc)
-	#print(head(resdf))
+	# keep only the first column and combined coeff col
+	keepCols = grep("combinedCoefficient" , colnames(resdf), fixed=T, value=T)
+	keepCols = c("ID", keepCols)
+	resdf = resdf[, keepCols]
+	resdf = apply(resdf,c(1,2), KeepNumericAs1) 
 	return(resdf)
-
 }
 
 
