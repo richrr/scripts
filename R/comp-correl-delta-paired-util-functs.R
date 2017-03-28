@@ -1257,11 +1257,12 @@ unlog_minus_1_vector <- function(InData, base){
 
 
 log_transform <- function(InData, base){
-if(base != 0){
-    if(base == 1) {
+	if(base != 0){
+    	if(base == 1) {
           InData = log(InData + 1)  # using the default base e i.e. exp(1)
-    } else {
+    	} else {
           InData = log(InData + 1, base)
+    	}
     }
 	return(InData)
 }
