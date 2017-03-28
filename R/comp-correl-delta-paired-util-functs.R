@@ -114,13 +114,22 @@ CalcNDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c3 = numericizeVector(as.vector(edata[pair[2], idxs1]))
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
+	c1 = unlog_minus_1_vector(c1, logbase)
+	c2 = unlog_minus_1_vector(c2, logbase)
+	c3 = unlog_minus_1_vector(c3, logbase)
+	c4 = unlog_minus_1_vector(c4, logbase)
+
     # calculate delta 
     #ca = c1-c2
     #cb = c3-c4
 
     # calculate delta normalized to starting value
+    # using unlogged values
     ca = (c1-c2)/c2
     cb = (c3-c4)/c4
+
+    ca = log_transform(ca, logbase) # note that log of negative number returns NaN
+    cb = log_transform(cb, logbase) # note that log of negative number returns NaN
 
     # number of non-na samples
     N = sum(!is.na(ca+cb))
@@ -426,13 +435,23 @@ CalcDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
     c3 = numericizeVector(as.vector(edata[pair[2], idxs1]))
     c4 = numericizeVector(as.vector(edata[pair[2], idxs2]))
 
+	c1 = unlog_minus_1_vector(c1, logbase)
+	c2 = unlog_minus_1_vector(c2, logbase)
+	c3 = unlog_minus_1_vector(c3, logbase)
+	c4 = unlog_minus_1_vector(c4, logbase)
+
+
     # calculate delta 
     #ca = c1-c2
     #cb = c3-c4
 
     # calculate delta normalized to starting value
+    # using unlogged values
     ca = (c1-c2)/c2
     cb = (c3-c4)/c4
+
+    ca = log_transform(ca, logbase) # note that log of negative number returns NaN
+    cb = log_transform(cb, logbase) # note that log of negative number returns NaN
 
     outLine = ''
     # there are less than 3 samples with values (i.e. without NA)
@@ -566,15 +585,18 @@ GetSimpleStats = function(lgene, edata, c1, c2, dict){
     if(sum(!is.na(c1)) < 3 || sum(!is.na(c2)) < 3){
         # nothing
     } else {
-       if(logbase > 0) { # some form of log transform
+    
+        # this is uncommented because if we input log transform data
+    	# but to avoid relog we use logbase 0, we still expect the calc should be based on log
+       #if(logbase > 0) { # some form of log transform
         	fold_change_mean = mean_c1-mean_c2
         	fold_change_median = median_c1-median_c2
         	fold_change_gm = gm_c1-gm_c2
-       } else { # not log transformed
-        	fold_change_mean = mean_c1/mean_c2
-        	fold_change_median = median_c1/median_c2
-        	fold_change_gm = gm_c1/gm_c2
-       }
+       #} else { # not log transformed
+       # 	fold_change_mean = mean_c1/mean_c2
+       # 	fold_change_median = median_c1/median_c2
+       # 	fold_change_gm = gm_c1/gm_c2
+       #}
     }
     outLine = as.matrix(c(mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, gm_c1 , gm_c2, fold_change_gm))
     
@@ -654,15 +676,17 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
         outLine = as.matrix(c(NA, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, NA, gm_c1 , gm_c2, fold_change_gm))
     } else if(pairedd == ""){
     
-       if(logbase > 0) { # some form of log transform
+    	# this is uncommented because if we input log transform data
+    	# but to avoid relog we use logbase 0, we still expect the calc should be based on log
+       #if(logbase > 0) { # some form of log transform
         	fold_change_mean = mean_c1-mean_c2
         	fold_change_median = median_c1-median_c2
         	fold_change_gm = gm_c1-gm_c2
-       } else { # not log transformed
-        	fold_change_mean = mean_c1/mean_c2
-        	fold_change_median = median_c1/median_c2
-        	fold_change_gm = gm_c1/gm_c2
-       }
+       #} else { # not log transformed
+       # 	fold_change_mean = mean_c1/mean_c2
+       # 	fold_change_median = median_c1/median_c2
+       #	fold_change_gm = gm_c1/gm_c2
+       #}
 
         if(comparMethod == 'tt'){
 		 # check if it works or throws an error (e.g. "data are essentially constant")
@@ -681,16 +705,18 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
           outLine = as.matrix(c(p$method, mean_c1, mean_c2, fold_change_mean, median_c1 , median_c2 , fold_change_median, p$p.value, gm_c1 , gm_c2, fold_change_gm)) # since this test does not explicitly give the means in the "estimate"
         }
     } else if(pairedd == "paired"){
-    
-       if(logbase > 0) { # some form of log transform
+
+    	# this is uncommented because if we input log transform data
+    	# but to avoid relog we use logbase 0, we still expect the calc should be based on log
+      # if(logbase > 0) { # some form of log transform
         	fold_change_mean = mean_c1-mean_c2
         	fold_change_median = median_c1-median_c2
         	fold_change_gm = gm_c1-gm_c2
-       } else { # not log transformed
-	        fold_change_mean = mean_c1/mean_c2
- 	        fold_change_median = median_c1/median_c2
-        	fold_change_gm = gm_c1/gm_c2
-       }
+      # } else { # not log transformed
+	  #      fold_change_mean = mean_c1/mean_c2
+ 	  #      fold_change_median = median_c1/median_c2
+      #  	fold_change_gm = gm_c1/gm_c2
+      # }
         
         if(comparMethod == 'tt'){
 		 # check if it works or throws an error (e.g. "data are essentially constant")
@@ -1209,6 +1235,38 @@ calculateComparisDeltaCorrelation = function (pairs, expressionData, c1, c2, c3,
 }
 
 
+pow <- function(x=10, y=6) {
+   # function to print x raised to the power y
+   result <- x^y
+   return(result)
+}
+
+##############
+## takes and returns vector 
+#############
+unlog_minus_1_vector <- function(InData, base){
+	if(base != 0){
+	    if(base == 1) {
+	          InData = sapply(InData, function(x) {(exp(x) - 1)})    # using the base e
+	    } else {
+	          InData = sapply(InData, function(x) {(pow(base, x) - 1)})
+	    }
+	}
+	return(InData)
+}
+
+
+log_transform <- function(InData, base){
+if(base != 0){
+    if(base == 1) {
+          InData = log(InData + 1)  # using the default base e i.e. exp(1)
+    } else {
+          InData = log(InData + 1, base)
+    }
+	return(InData)
+}
+
+
 #==================================================================================================================
 #		Condition 2
 #==================================================================================================================
@@ -1242,6 +1300,11 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     c3 = numericizeVector(as.vector(edata[lgene, idxs3]))
     c4 = numericizeVector(as.vector(edata[lgene, idxs4]))
 
+	c1 = unlog_minus_1_vector(c1, logbase)
+	c2 = unlog_minus_1_vector(c2, logbase)
+	c3 = unlog_minus_1_vector(c3, logbase)
+	c4 = unlog_minus_1_vector(c4, logbase)
+	
     #print(c1)
     #print(c2)
     #print(c3)
@@ -1256,10 +1319,19 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	#ca = c1-c2
 
     	# calculate delta normalized to starting value
+    	# this calc is performed on unlogged values
     	ca = (c1-c2)/c2
-
-    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
-    	ca_fc = c1/c2
+    	
+    	# perform log transform here
+    	c1 = log_transform(c1, logbase)
+    	c2 = log_transform(c2, logbase)
+    	ca = log_transform(ca, logbase) # note that log of negative number returns NaN
+    	
+    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); 
+    	# this avoids division between negative and positive
+    	# since at this point we are working in log scale, (A/B):(C/D) is performed as A-B minus C-D
+    	ca_fc = c1-c2
+    	
     } else {
         ca[1:3] <- NA  # since we expect this to NA
         ca_fc[1:3] <- NA
@@ -1270,15 +1342,22 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	#cb = c3-c4
 
     	# calculate delta normalized to starting value
+    	# this calc is performed on unlogged values
     	cb = (c3-c4)/c4
 
-    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
-    	cb_fc = c3/c4
+    	# perform log transform here
+    	c3 = log_transform(c3, logbase)
+    	c4 = log_transform(c4, logbase)
+    	cb = log_transform(cb, logbase) # note that log of negative number returns NaN
+    	
+    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); 
+    	# this avoids division between negative and positive
+    	# since at this point we are working in log scale, (A/B):(C/D) is performed as A-B minus C-D
+    	cb_fc = c3-c4
     } else {
         cb[1:3] <- NA  # since we expect this to NA
         cb_fc[1:3] <- NA
     }
-
 
 
 
@@ -1332,8 +1411,9 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     } else if(comparMethod == 'tt'){
     
         # note that this fold change is calc differently; it is ratio of fold changes
-        fold_change_mean = fold_change_mean_ca/fold_change_mean_cb
-        fold_change_median = fold_change_median_ca/fold_change_median_cb
+        # but since we are in log scale, we are doing minus
+        fold_change_mean = fold_change_mean_ca - fold_change_mean_cb
+        fold_change_median = fold_change_median_ca - fold_change_median_cb
     
     	#https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
     	obj<-try(t.test(ca,cb), silent=TRUE)
@@ -1349,8 +1429,9 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     }else if(comparMethod == 'mw'){
     
         # note that this fold change is calc differently; it is ratio of fold changes
-        fold_change_mean = fold_change_mean_ca/fold_change_mean_cb
-        fold_change_median = fold_change_median_ca/fold_change_median_cb
+        # but since we are in log scale, we are doing minus
+        fold_change_mean = fold_change_mean_ca - fold_change_mean_cb
+        fold_change_median = fold_change_median_ca - fold_change_median_cb
     
         p = wilcox.test(ca,cb)
         outLine = as.matrix(c(p$method, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
