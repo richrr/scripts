@@ -1150,15 +1150,9 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     c3 = numericizeVector(as.vector(edata[lgene, idxs3]))
     c4 = numericizeVector(as.vector(edata[lgene, idxs4]))
 
-    #print(c1)
-    #print(c2)
-    #print(c3)
-    #print(c4)
     
     ca = ''
     cb = ''
-    ca_fc = ''
-    cb_fc = ''
     if((sum(!is.na(c1)) >= 3) & (sum(!is.na(c2)) >= 3)){
     	# calculate delta
     	#ca = c1-c2
@@ -1166,11 +1160,8 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	# calculate delta normalized to starting value
     	ca = (c1-c2)/c2
 
-    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
-    	ca_fc = c1/c2
     } else {
         ca[1:3] <- NA  # since we expect this to NA
-        ca_fc[1:3] <- NA
     }
 
     if((sum(!is.na(c3)) >= 3) & (sum(!is.na(c4)) >= 3)){
@@ -1180,14 +1171,9 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     	# calculate delta normalized to starting value
     	cb = (c3-c4)/c4
 
-    	# calculate fold change differently for delta: (A/B):(C/D) instead of (A-B):(C-D); this avoids division between negative and positive
-    	cb_fc = c3/c4
     } else {
         cb[1:3] <- NA  # since we expect this to NA
-        cb_fc[1:3] <- NA
     }
-
-
 
 
     outLine = ''
@@ -1200,69 +1186,20 @@ CalcComDelta = function(lgene, edata, c1, c2, c3, c4, dict, comparMethod){
     median_ca = NA
     median_cb = NA
 
-    fold_change_mean = NA
-    fold_change_median = NA
-
-    fold_change_mean_ca = NA
-    fold_change_median_ca = NA
-
-    fold_change_mean_cb = NA
-    fold_change_median_cb = NA
-
     # there are at least 3 samples with values (i.e. without NA)
     if(sum(!is.na(ca)) >= 3){
         # on deltas
         mean_ca = mean(ca, na.rm=TRUE)
         median_ca = median(ca, na.rm=TRUE)
-        
-        # on fold change 
-        fold_change_mean_ca = mean(ca_fc, na.rm=TRUE)
-        fold_change_median_ca = median(ca_fc, na.rm=TRUE)        
     } 
 
     if(sum(!is.na(cb)) >= 3){
         # on deltas
         mean_cb = mean(cb, na.rm=TRUE)
         median_cb = median(cb, na.rm=TRUE)
-
-        # on fold change 
-        fold_change_mean_cb = mean(cb_fc, na.rm=TRUE)
-        fold_change_median_cb = median(cb_fc, na.rm=TRUE)
     } 
    
-   #print(ca)
-   #print(cb)
-   #print(ca_fc)
-   #print(cb_fc)
-
-    if((sum(!is.na(ca)) < 3) || (sum(!is.na(cb)) < 3)  ||  (sum(is.finite(ca)) < 3) || (sum(is.finite(cb)) < 3)){
-        outLine = as.matrix(c(NA, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median,  NA)) 
-    } else if(comparMethod == 'tt'){
-    
-        # note that this fold change is calc differently; it is ratio of fold changes
-        fold_change_mean = fold_change_mean_ca/fold_change_mean_cb
-        fold_change_median = fold_change_median_ca/fold_change_median_cb
-    
-    	#https://stat.ethz.ch/pipermail/r-help/2008-February/154167.html
-    	obj<-try(t.test(ca,cb), silent=TRUE)
-		if (is(obj, "try-error")) {
-		     outLine = as.matrix(c(NA, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median,  NA)) 
-		} else { 	
-			p = t.test(ca,cb)
-			#print(p)
-			#print(mean_ca)
-			#print(mean_cb)
-			outLine = as.matrix(c(p$method, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median, p$p.value))
-        }
-    }else if(comparMethod == 'mw'){
-    
-        # note that this fold change is calc differently; it is ratio of fold changes
-        fold_change_mean = fold_change_mean_ca/fold_change_mean_cb
-        fold_change_median = fold_change_median_ca/fold_change_median_cb
-    
-        p = wilcox.test(ca,cb)
-        outLine = as.matrix(c(p$method, mean_ca, mean_cb, fold_change_mean, median_ca, median_cb, fold_change_median, p$p.value)) # since this test does not explicitly give the means in the "estimate"
-    }
+    outLine = as.matrix(c(mean_ca, mean_cb, median_ca, median_cb)) 
     outLine
 
 }
@@ -1290,22 +1227,8 @@ calculateComparisonDelta = function (lgenes, expressionData, c1, c2, c3, c4, dic
     # the genes become row names; and the method, meanx, meany, and pvalue are the column names
     out = t(out)
     
-    # method used; # just take the first non-NA element
-    tmp_uniq = unique(out[,1]) 
-    NonNAindex <- which(!is.na(tmp_uniq))[1]
-    method_label = tmp_uniq[NonNAindex]
+    colnames(out) = c(paste("Analys", indxg, "Mean", c1, "minus", c2, sep=" "), paste("Analys", indxg, "Mean", c3, "minus" , c4, sep=" "), paste("Analys", indxg, "Median", c1, "minus", c2, sep=" "), paste("Analys", indxg, "Median", c3, "minus" , c4, sep=" "))
 
-    # discards the first column of method used
-    out = out[,-1]
-
-
-    colnames(out) = c(paste("Analys", indxg, method_label,"Mean", c1, "minus", c2, sep=" "), paste("Analys", indxg, method_label,"Mean", c3, "minus" , c4, sep=" "), paste("Analys", indxg, method_label,"FoldChange", sep=" "), paste("Analys", indxg, method_label,"Median", c1, "minus", c2, sep=" "), paste("Analys", indxg, method_label,"Median", c3, "minus" , c4, sep=" "), paste("Analys", indxg, method_label,"FolChMedian", sep=" "), paste("Analys", indxg, method_label,c1,"minus", c2,"vs",c3,"minus", c4,"pvalue",sep=" "))
-
-    # calculate FDR
-    FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
-    oldColnames = colnames(out)  
-    out = cbind(out, FDR)
-    colnames(out) = c(oldColnames,paste("Analys", indxg, method_label,c1,"minus", c2,"vs",c3,"minus", c4,"FDR",sep=" "))
     geneName = rownames(out)
     out = cbind(geneName,out)
     out

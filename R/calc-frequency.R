@@ -417,42 +417,42 @@ for(indx in 1:nrow(AnalysToDoList)){
         } # end else
 
 
-#     }else if(c[1] != "" && c[2] != "" && c[3] == "delta" && c[4] == ""){
-#         print("2")
-#         categA= toString(c[1,"V1"])
-#         categB= toString(c[1,"V2"])
-# 
-#         cA = strsplit(categA, ",")[[1]]
-#         categ1 = cA[1]
-#         categ2 = cA[2]
-#  
-#         cB = strsplit(categB, ",")[[1]]
-#         categ3 = cB[1]
-#         categ4 = cB[2]
-#  
-#         if(categ1 == "" || categ2 == "" || categ3 == "" || categ4 == ""){
-#             print("Error in number of categories. Give categ1,categ2\tcateg3,categ4")
-#             next
-#         }
-# 
-#     genes = ''
-# 	#if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then generate unique pairs
-# 	if(identical(genes1, genes2)){
-# 	    genes = genes1
-# 	}else{                              # else take union
-# 	    #print("Reached here")
-# 	    genes = union(genes1,genes2)  
-# 	} # end else
-# 
-#         # calculate comparison
-#         outEachExperiment = calculateComparisonDelta(genes, expressionData, categ1, categ2, categ3, categ4, dict, argv$comparMethod, indx)
-#         if (length(compout)==0){
-# 	    compout <<- outEachExperiment
-#         }else{
-# 	    compout <<- merge(compout,outEachExperiment,sort=FALSE,by=1)
-#         } # end else
-# 
-# 
+     }else if(c[1] != "" && c[2] != "" && c[3] == "delta" && c[4] == ""){
+         print("2")
+         categA= toString(c[1,"V1"])
+         categB= toString(c[1,"V2"])
+ 
+         cA = strsplit(categA, ",")[[1]]
+         categ1 = cA[1]
+         categ2 = cA[2]
+  
+         cB = strsplit(categB, ",")[[1]]
+         categ3 = cB[1]
+         categ4 = cB[2]
+  
+         if(categ1 == "" || categ2 == "" || categ3 == "" || categ4 == ""){
+             print("Error in number of categories. Give categ1,categ2\tcateg3,categ4")
+             next
+         }
+ 
+     genes = ''
+ 	#if gene list1 is the same as gene list2 then generate unique pairs
+ 	if(identical(genes1, genes2)){
+ 	    genes = genes1
+ 	}else{                              # else take union
+ 	    #print("Reached here")
+ 	    genes = union(genes1,genes2)  
+ 	} # end else
+ 
+         # calculate comparison
+         outEachExperiment = calculateComparisonDelta(genes, expressionData, categ1, categ2, categ3, categ4, dict, argv$comparMethod, indx)
+         if (length(compout)==0){
+ 	    compout <<- outEachExperiment
+         }else{
+ 	    compout <<- merge(compout,outEachExperiment,sort=FALSE,by=1)
+         } # end else
+ 
+ 
     }else if(c[1] != "" && c[2] != "" && c[3] == "paired" && c[4] == ""){
         print("3")
         categ1= toString(c[1,"V1"])
