@@ -181,8 +181,10 @@ resdf = subset(corrdf , grepl(paste(otu_pairs, collapse= "|"), ID))
 resdf = round_df(resdf, 2)
 
 cols_to_add = add_taxa_freq_cols(resdf$ID, cmpdf)
-resdf = cbind(resdf, cols_to_add)
-write.csv(resdf, paste(outstr , ".csv", sep=""), row.names=FALSE, quote=F)
+
+#### full table ####
+resdf_full = cbind(resdf, cols_to_add)
+write.csv(resdf_full, paste(outstr , ".csv", sep=""), row.names=FALSE, quote=F)
 
 
 # note that for correl, we might want to use something different.
@@ -221,13 +223,15 @@ summarize_table = function(resdf){
 	# keep only the first column and combined coeff col
 	keepCols = grep("combinedCoefficient" , colnames(resdf), fixed=T, value=T)
 	keepCols = c("ID", keepCols)
+	
 	resdf = resdf[, keepCols]
 	resdf = apply(resdf,c(1,2), KeepNumericAs1) 
 	return(resdf)
 }
 
-
+### summary table ###
 resdf = summarize_table(resdf)
-write.csv(resdf, paste(outstr , "-summary.csv", sep=""), row.names=FALSE, quote=F)
+resdf_summary = cbind(resdf, cols_to_add)
+write.csv(resdf_summary, paste(outstr , "-summary.csv", sep=""), row.names=FALSE, quote=F)
 
 #warnings()
