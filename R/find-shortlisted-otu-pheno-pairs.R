@@ -9,6 +9,37 @@ args = commandArgs(trailingOnly=TRUE)
 #print(length(args))
 
 
+#------------------------------------------------------------------
+# this calculates fisher pvalue based on different analysis
+#------------------------------------------------------------------
+calcFisherPval = function(outForPUC, searchterm){
+   # calculate combined Pvalue for interest group
+   PvalueColnames = colnames(outForPUC)[grep(searchterm,colnames(outForPUC))]
+   #print(PvalueColnames)
+   interestedPvalueData = outForPUC[,PvalueColnames]
+   interestedPvalueData = as.matrix(interestedPvalueData)
+   interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+   combinedPvalue = apply(interestedPvalueData,1
+							,function(pvalues){
+										pvalues = pvalues[!is.na(pvalues)]
+										statistics = -2*log(prod(pvalues))
+										degreeOfFreedom = 2*length(pvalues)
+										combined = 1-pchisq(statistics,degreeOfFreedom)
+									}
+							)
+	return(combinedPvalue)
+}
+
+
+#------------------------------------------------------------------
+# this calcs FDR
+#------------------------------------------------------------------
+calcFDR = function(result){
+   #calculate FDR for combined pvalue
+   combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
+   return(combinedFDR)
+}
+
 
 
 #------------------------------------------------------------------
@@ -178,6 +209,13 @@ otu_pairs = paste(selOTUs, "<==>", sep='')
 
 
 resdf = subset(corrdf , grepl(paste(otu_pairs, collapse= "|"), ID))
+
+
+combinedPvalue = calcFisherPval(resdf, "combinedPvalue")
+resdf_w_Fisherp = cbind(resdf, combinedPvalue)
+combinedFDR = calcFDR(resdf_w_Fisherp)
+resdf = cbind(resdf_w_Fisherp, combinedFDR)
+
 resdf = round_df(resdf, 2)
 
 cols_to_add = add_taxa_freq_cols(resdf$ID, cmpdf)
@@ -230,7 +268,9 @@ summarize_table = function(resdf){
 }
 
 ### summary table ###
+keepasis = resdf[, c("combinedPvalue", "combinedFDR")]
 resdf = summarize_table(resdf)
+resdf = cbind(resdf, keepasis)
 resdf_summary = cbind(resdf, cols_to_add)
 write.csv(resdf_summary, paste(outstr , "-summary.csv", sep=""), row.names=FALSE, quote=F)
 
