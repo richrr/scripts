@@ -268,7 +268,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	rownames(pairs) = row_names_Data # remove this if you do not want row names
         outForPUC = cbind(pairs,Data)
 	
-        grep_cols_c = grep("pvalue", colnames(outForPUC), ignore.case = TRUE , value=TRUE, fixed=TRUE) 
+        grep_cols_c = grep("pvalue", colnames(outForPUC), value=TRUE, fixed=TRUE) #ignore.case = TRUE ,  
         grep_cols_c = append(grep_cols_c, grep("combined" , colnames(outForPUC), value=TRUE, fixed=TRUE) )
  
         g_grep_cols = c("partner1","partner2", grep_cols_c) 
@@ -432,7 +432,17 @@ calc_stats = function(inNet, correlThreshold=0){
 
         
         coefficientData = inNet[,grep("correlationDirection",colnames(inNet)),drop=FALSE]
-	coefficientData = apply(coefficientData,2,function(x){as.numeric(as.vector(x))})
+		
+		## artifically add row (with 0) incase it is only 1 row
+		if(nrow(coefficientData) == 1){
+			tmp_v = c("0")
+			tmp_artif = data.frame(tmp_v)
+			colnames(tmp_artif) = c("combinedCoefficient.correlationDirection")
+			coefficientData = rbind(coefficientData, tmp_artif)
+		}
+		
+		coefficientData = apply(coefficientData,2,function(x){as.numeric(as.vector(x))})
+		
         res_pos = apply(coefficientData, 2, function(x) sum(x == 1))
         res_neg = apply(coefficientData, 2, function(x) sum(x == -1))
         res = cbind(res_pos, res_neg)
@@ -500,7 +510,9 @@ generateNetwork = function(){
 	
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
 	passIndevidualPvalue = apply(pvalueData,1,max)<individualPvalueCutoff
-	outNetwork = out[passIndevidualPvalue,]
+	#print(passIndevidualPvalue)
+	outNetwork = out[passIndevidualPvalue, , drop=FALSE]
+	#print(outNetwork)
         
         #outNetwork$names<-rownames(outNetwork)
         #splt = str_split_fixed(outNetwork$names, "<==>", 2)
