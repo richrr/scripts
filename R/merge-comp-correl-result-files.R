@@ -219,14 +219,28 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, apply
       if(grepl("pvalue", colnames(subset_df)[1])){
 
           outForPUC = subset_df
+		  #print(outForPUC)
           # calculate combined Pvalue for interest group
           PvalueColnames = colnames(outForPUC)[grep("pvalue",colnames(outForPUC))]
           total_numb_input_files = length(PvalueColnames)
-          interestedPvalueData = outForPUC[,PvalueColnames]
+          interestedPvalueData = outForPUC[,PvalueColnames, drop=FALSE]
           #print(interestedPvalueData)
           interestedPvalueData = as.matrix(interestedPvalueData)
-          interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
-          combinedPvalue = apply(interestedPvalueData,1
+
+		  
+		  ## artifically add row (with 0) incase it is only 1 row
+		  artif_flag = FALSE
+		  if(nrow(interestedPvalueData) == 1){
+			tmp_v = rep(NA, ncol(interestedPvalueData))
+			tmp_artif = data.frame(t(tmp_v))
+			colnames(tmp_artif) = colnames(interestedPvalueData)
+			interestedPvalueData = rbind(tmp_artif, interestedPvalueData)
+			artif_flag = TRUE
+		  }
+		
+
+		  interestedPvalueData = apply(interestedPvalueData,2,function(x){as.numeric(as.vector(x))})
+		  combinedPvalue = apply(interestedPvalueData,1
 							,function(pvalues){
 										pvalues = pvalues[!is.na(pvalues)]
 										statistics = -2*log(prod(pvalues))
@@ -234,6 +248,12 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, apply
 										combined = 1-pchisq(statistics,degreeOfFreedom)
 									}
 							)
+
+    	  # remove the artifical row
+		  if(artif_flag){
+			combinedPvalue = combinedPvalue[-1]
+		  }
+		  
 	   #calculate FDR for combined pvalue
            combinedFDR = p.adjust(combinedPvalue,method="fdr")
   
