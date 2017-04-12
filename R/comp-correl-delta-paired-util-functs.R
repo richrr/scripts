@@ -1183,7 +1183,7 @@ CalcDeltaComparisCor = function(pair, edata, c1, c2, c3, c4, dict, correlMethod)
     } else {
         # because you still expect the correlations to be the same
         #ret_result = c(r_12, r_34, NA) # OR
-        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
+        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA)
     }
 
     ret_result
