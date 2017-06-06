@@ -253,7 +253,9 @@ sub processFastq{
 	
 	if($lexogen){
 		#@gzFilesR1 = `ls $inputFolder | grep ".fastq" | grep "trimmed" | grep "clean" | grep "lane" | grep "_R1_" `; 
-		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
+		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `;  # this is default. uncomment this
+		# below for melina's data
+		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "_R1_" `; 
 	}
 	else{
 		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
