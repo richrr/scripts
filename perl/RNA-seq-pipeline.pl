@@ -49,7 +49,7 @@ my $samtoolsBin = "samtools";
 my $inputFolder = "./";
 my $outputFolder = "./RNA-SEQ";
 my $tophatProgram = "tophat";
-
+my $threads = 8;
 
 my $version;
 my $ucsc;
@@ -67,11 +67,14 @@ my $help;
 
 my $lexogen; 
 
+
+
 #my $min_read_length;
 
 GetOptions (
 			"help"  => \$help,   # flag.
 			"version=s" => \$version,    # string
+			"threads=i" => \$threads,    # integer # number of threads or cores
             "inputFolder=s"   => \$inputFolder,      # string
             "outputFolder=s"   => \$outputFolder,      # string
             "ucsc"  => \$ucsc,   # flag. # UCSC returns gene symbols
@@ -113,6 +116,7 @@ sub usage {
       "       Version of genome and annotation is required\n" .
       "       Input folder defaults to ./\n" .
       "       Output folder defaults to ./RNA-SEQ\n" .
+	  "	      Default 8 threads\n" .
 	  "       Defaults to cutadapt. Specify --lexogen if needed\n" .
       "       Defaults to single end. Specify --paired if needed\n"
    );
@@ -329,9 +333,9 @@ sub processFastq{
 			`mkdir $samFolder` if (! -d $samFolder);
 			my $acceptedBam = "$tophatOutFolder/accepted_hits.bam";
 			# sort by name, convert to SAM for htseq-count
-			print "$samtoolsBin sort -n --threads 20 -o $acceptedBam.sn.bam --output-fmt BAM $acceptedBam  \n";
-			`$samtoolsBin sort -n --threads 20 -o $acceptedBam.sn.bam --output-fmt bam $acceptedBam ` if (! -e "$samFolder/$fileName");
-			`$samtoolsBin view --threads 20 --output-fmt sam -o $samFolder/$fileName $acceptedBam.sn.bam` if (! -e "$samFolder/$fileName");
+			print "$samtoolsBin sort -n --threads $threads -o $acceptedBam.sn.bam --output-fmt BAM $acceptedBam  \n";
+			`$samtoolsBin sort -n --threads $threads -o $acceptedBam.sn.bam --output-fmt bam $acceptedBam ` if (! -e "$samFolder/$fileName");
+			`$samtoolsBin view --threads $threads --output-fmt sam -o $samFolder/$fileName $acceptedBam.sn.bam` if (! -e "$samFolder/$fileName");
 # samtools view -?  
 # 3. SAM->BAM conversion: `samtools view -b in.sam.gz'.    -o FILE  output file name
 #  4. BAM->SAM conversion: `samtools view -h in.bam'.  # do you need -h?
@@ -352,7 +356,7 @@ sub processFastq{
 
 sub runTopHat_pe {
 	my ($cutAdaptorFileR1, $cutAdaptorFileR2, $tophatOutFolder) = @_;
-	my $cmd = "$tophatProgram --no-coverage-search -G $gf -p 20 -o $tophatOutFolder $bowind $cutAdaptorFileR1 $cutAdaptorFileR2 ";  
+	my $cmd = "$tophatProgram --no-coverage-search -G $gf -p $threads -o $tophatOutFolder $bowind $cutAdaptorFileR1 $cutAdaptorFileR2 ";  
 	print ($cmd,"\n\n");
 	`$cmd`;	
 }
@@ -360,7 +364,7 @@ sub runTopHat_pe {
 
 sub runTopHat {
 	my ($cutAdaptorFile, $tophatOutFolder) = @_;
-	my $cmd = "$tophatProgram --no-coverage-search -G $gf -p 8 -o $tophatOutFolder $bowind $cutAdaptorFile";
+	my $cmd = "$tophatProgram --no-coverage-search -G $gf -p $threads -o $tophatOutFolder $bowind $cutAdaptorFile";
 	print ($cmd,"\n\n");
 	`$cmd`;	
 }
