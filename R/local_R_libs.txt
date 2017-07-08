@@ -96,3 +96,31 @@ biocLite("limma")
 
 source("http://bioconductor.org/biocLite.R")
 biocLite(c("Biobase"))
+
+install.packages('RColorBrewer', repos='http://cran.rstudio.com/')
+
+
+ install.packages('outliers', repos='http://cran.rstudio.com/')
+
+ # https://cran.r-project.org/web/packages/ppcor/ppcor.pdf
+ install.packages('ppcor', repos="http://cran.r-project.org") 
+ (allows using pcor.test)
+ 
+ 
+ 
+install.packages('RefManageR', repos="http://cran.r-project.org") 
+ 
+install.packages('RCurl', repos="http://cran.r-project.org") 
+ 
+
+install.packages("Rttf2pt1")
+install.packages("extrafontdb")
+install.packages("extrafont")
+
+# https://docs.aspose.com/display/wordsjava/How+to++Install+True+Type+Fonts+on+Linux
+cd /raid1/home/pharmacy/rodrrich
+mkdir fonts
+copy from C:\Windows\Fonts and paste in \\files.cgrb.oregonstate.edu\RAID1\home\pharmacy\rodrrich\fonts  
+# https://community.linuxmint.com/tutorial/view/29
+mv fonts .fonts
+fc-cache -fv

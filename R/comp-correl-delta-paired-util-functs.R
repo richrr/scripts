@@ -793,7 +793,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
                     
                     targets=rep(all_categs, all_idxs_lengths) # use all_categs and all_idxs_lengths to create targets
                     Group <- factor(targets, levels=all_categs)
-		    #print(Group)
+		    print(Group)
 		    
                     
             } else {
@@ -808,7 +808,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 		    numbSamplc2 = length(idxs2)
 		    targets=rep(c(c1,c2), c(numbSamplc1, numbSamplc2))
 		    Group <- factor(targets, levels=c(c1,c2))
-		    print(Group)
+		    #print(Group)
 		    
 	    }
 	    
@@ -817,6 +817,7 @@ calculateComparison = function (lgenes, expressionData, c1, c2, dict, comparMeth
 	    colnames(design) <- all_categs
 	    rownames(design) <- all_idxs
 	    #print(design)
+		#print(all_idxs)
 	    
 	    ### what about give all the list of genes and select only required later ###
 	    # extract the required expression data

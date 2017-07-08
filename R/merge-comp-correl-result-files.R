@@ -745,7 +745,7 @@ if(argv$runfreqmerge)
 	print("Finished performing the requested frequency analyses.")
 }
 
-print("You may want to run create-network.R next. \n REMEMER to run process-delta-consistency.R if your code has delta comparisons.")
+print("You may want to run create-network.R next. \n ") # No need to run process-delta-consistency.R if your code has delta comparisons.
 
 
 

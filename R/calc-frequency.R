@@ -39,7 +39,7 @@ source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-fr
 #==================================================================================================================
 # parameters
 #==================================================================================================================
-p <- arg_parser('perform-analyses.R Calculates comparison and correlation analysis between lists')
+p <- arg_parser('calc-frequency.R Calculates freq for OTUs')
 p <- add_argument(p, "expressionDataFile", help="file containing values (measurements) to be used for correlation") # required
 
 # truly optional
