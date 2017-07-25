@@ -1,0 +1,44 @@
+stool4wk AbxHFHS	stool4wk AbxNCD		
+stool4wk AbxHFHS			correlation
+stool4wk AbxNCD			correlation
+ileum4wk AbxHFHS	ileum4wk AbxNCD		
+ileum4wk AbxHFHS			correlation
+ileum4wk AbxNCD			correlation
+stool4wk AbxHFHS+amp	stool4wk AbxHFHS		
+stool4wk AbxHFHS+cef	stool4wk AbxHFHS		
+stool4wk AbxHFHS+met	stool4wk AbxHFHS		
+stool4wk AbxHFHS+neo	stool4wk AbxHFHS		
+stool4wk AbxHFHS+nor	stool4wk AbxHFHS		
+stool4wk AbxHFHS+vanc	stool4wk AbxHFHS		
+stool4wk AbxHFHS+amp			correlation
+stool4wk AbxHFHS+cef			correlation
+stool4wk AbxHFHS+met			correlation
+stool4wk AbxHFHS+neo			correlation
+stool4wk AbxHFHS+nor			correlation
+stool4wk AbxHFHS+vanc			correlation
+ileum4wk AbxHFHS+amp	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+cef	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+met	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+neo	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+nor	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+vanc	ileum4wk AbxHFHS		
+ileum4wk AbxHFHS+amp			correlation
+ileum4wk AbxHFHS+cef			correlation
+ileum4wk AbxHFHS+met			correlation
+ileum4wk AbxHFHS+neo			correlation
+ileum4wk AbxHFHS+nor			correlation
+ileum4wk AbxHFHS+vanc			correlation
+stool4wk AbxHFHS+amp,stool4wk dietHFHS+amp	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS+cef,stool4wk dietHFHS+cef	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS+met,stool4wk dietHFHS+met	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS+neo,stool4wk dietHFHS+neo	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS+nor,stool4wk dietHFHS+nor	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS+vanc,stool4wk dietHFHS+vanc	stool4wk AbxHFHS,stool4wk dietHFHS	delta	
+stool4wk AbxHFHS,stool4wk dietHFHS		delta	correlation
+stool4wk AbxHFHS+amp,stool4wk dietHFHS+amp		delta	correlation
+stool4wk AbxHFHS+cef,stool4wk dietHFHS+cef		delta	correlation
+stool4wk AbxHFHS+met,stool4wk dietHFHS+met		delta	correlation
+stool4wk AbxHFHS+neo,stool4wk dietHFHS+neo		delta	correlation
+stool4wk AbxHFHS+nor,stool4wk dietHFHS+nor		delta	correlation
+stool4wk AbxHFHS+vanc,stool4wk dietHFHS+vanc		delta	correlation
+stool4wk AbxHFHS,stool4wk dietHFHS	stool4wk AbxNCD,stool4wk dietNCD	delta	

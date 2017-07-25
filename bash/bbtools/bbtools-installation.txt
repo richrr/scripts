@@ -1,0 +1,19 @@
+3/3/2017
+
+http://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/installation-guide/
+
+
+Download the latest version:
+https://sourceforge.net/projects/bbmap/
+
+
+$ cd /nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools
+
+Extract the files using tar:
+$ tar -xvzf BBMap_36.99.tar.gz
+
+this creates a subfolder named bbmap with the shell scripts and other necessary files.
+
+To test the installation run stats.sh against the PhiX reference genome (included in the BBTools download):
+$ /nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/stats.sh in=/nfs3/PHARM/Morgun_Lab/richrr/scripts/bash/bbtools/bbmap/resources/phix174_ill.ref.fa.gz
+

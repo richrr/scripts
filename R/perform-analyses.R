@@ -253,7 +253,7 @@ if(!argv$noCorrelationsRequested){
 		# use below for testing purposes and/or when calculating partial correlation # has same gene pairs (e.g. gene1 gene1)
                 #pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE) # from https://gist.github.com/randy3k/10015496 for testing purposes 
 	}else{
-		pairs = expand.grid(genes1,genes2)  # this has all the above & their opposite (e.g. gene1 gene2 and gene2 gene1) & same gene pairs (e.g. gene1 gene1)
+		pairs = expand.grid(genes1,genes2)  # does genes1 x genes2 pairs ## not sure about this-> this has all the above & their opposite (e.g. gene1 gene2 and gene2 gene1) & same gene pairs (e.g. gene1 gene1)
 	}	
 	#write.csv(pairs,pairFile,row.names=FALSE)
 	#file.remove("./testpair.txt")

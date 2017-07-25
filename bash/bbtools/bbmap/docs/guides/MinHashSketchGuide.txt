@@ -1,0 +1,91 @@
+Sketch Guide
+Written by Brian Bushnell
+Last updated February 3, 2017
+
+MinHash Sketch is a method of rapidly comparing large strings or datasets.  It was invented in 1997 (https://en.wikipedia.org/wiki/MinHash), and has been more recently applied to genomics by some programs like Mash (https://github.com/marbl/Mash).  In genomics, you can use it like this:
+
+1) Gather all the kmers in a genome.
+2) Apply a hash function to them.
+3) Keep the 10000 smallest hashcodes and call this set a "sketch".
+
+If you do this for multiple genomes, you can calculate how similar two genomes are much faster than via alignment; and specifically, the greatest advantage is that the speed of sketch comparison is unrelated to genome size.  For example, if you assemble something, you can sketch it and compare it to sketches of everything in nt or RefSeq in a couple seconds.  If the top hit shows that your new sketch shared 90% of its hash codes with E.coli, that means it has roughly 90% kmer identity to E.coli, and therefore, it is E.coli.
+
+The BBMap package has an extremely efficient MinHash Sketch implementation, currently accessible through 4 programs.  This file provides usage examples of various common tasks.  For a complete list of all command-line parameters and meanings, please run the related shell script (such as sketch.sh) with no parameters. 
+
+* Notes *
+
+Memory:  
+
+Sketching does not require much memory, but complete sequences are held in memory at once.  So Human hg19.fasta would take hundreds of megabytes because it has individual chromosomes that are hundreds of megabases.  Also, sketching nt uses little memory when run in per-sequence mode, but can use a lot of memory when run in per-taxa mode, because it has millions of entries with unassigned taxonomy, and every taxa has to stay in memory until the end.
+
+Threads:
+
+SendSketch is currently singlethreaded client-side (the hard work is done remotely).  All other Sketch tools use all available threads unless restricted with the "threads" flag.
+
+Compression and Sketch Format:
+
+BBMap's sketches are written in plain text.  The format is so efficient that gzip compression is not really needed.  You can compress them for a ~20% size reduction, but then they will be slightly slower to load.
+
+*Usage Examples*
+
+The latest Sketch tool is SendSketch, just released in BBMap 36.92:
+
+sendsketch.sh in=contigs.fa
+
+This will make a sketch of your assembly, open an HTTP connection to JGI's taxonomy server, and send the sketch.  The server will compare it to sketches of all of nt, and return the top hits.  This is kind of convenient because the sketches sit around in memory all the time rather than needing to be loaded.  Alternately, you can run a local server with "taxserver.sh" if you want to use a different database.  By default SendSketch will create a 10000-entry sketch (roughly 50kb); you can adjust sensitivity and transmission speed by changing the size.  But, the reference sketches are currently 10000 entries so going above that for the query will probably not be helpful.
+
+The other tools are for processing sketches locally.  To sketch and query refseq:
+
+sketch.sh in=refseq.fa.gz out=refseq#.sketch files=31 mode=sequence
+
+That will produce one sketch per sequence, and split them among 31 output files (for rapid loading).  Alternatively, and preferably, you can produce one sketch per taxID, like this:
+
+sketch.sh in=refseq.fa.gz out=refseq#.sketch files=31 mode=taxa tree=tree.taxtree.gz gi=gitable.int1d.gz taxlevel=species
+
+That will produce only one sketch per species, so for things like E.coli with thousands of variants, you won't get thousands of sketches, just one.  For some purposes the subspecies level is probably better, though.  tree.taxtree.gz and gitable.int1d.gz are created from NCBI's tax dump, like this:
+
+wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip
+wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/gi_taxid_nucl.dmp.gz
+wget ftp://ftp.ncbi.nih.gov/pub/taxonomy/gi_taxid_prot.dmp.gz
+
+unzip taxdmp.zip
+taxtree.sh names.dmp nodes.dmp tree.taxtree.gz
+gitable.sh gi_taxid_nucl.dmp.gz,gi_taxid_prot.dmp.gz gitable.int1d.gz
+
+Now that you have created some sketches, you can query them like this:
+
+comparesketch.sh in=contigs.fa refseq*.sketch
+
+"in=" can be a comma-delimited list of either fasta or sketch files.  Also, you can turn an input fasta into one sketch per sequence rather than just a single sketch with the "mode=sequence" flag.  If you want to process using taxonomic information, add "tree=taxtree.gz" as well.  You alternately compare raw fastq reads if you want.  KmerCountExact can produce sketches like this:
+
+kmercountexact.sh in=reads.fq sketch=out.sketch mincount=5
+
+That will make a sketch only from kmers occuring at least 5 times (to avoid error kmers).  Overall, the process is probably similar speed-wise to assembling with Tadpole and feeding the assembly to SendSketch/CompareSketch:
+
+tadpole.sh in=reads.fq out=contigs.fa
+sendsketch.sh in=contigs.fa
+
+Another, faster alternative is to subsample the reads and sketch the resulting fastq, or simply sketch the entire thing, though those methods become less sensitive as coverage depth increases due to the presence of errors in the raw reads.
+
+So, that's how you run Sketch.  Now, what does the output mean?  Here's an example, using a strain of Aspergillus:
+
+sendsketch.sh in=ref.fa
+
+Loaded 1 sketches in    1.288 seconds.
+
+Results for ChrIII_A_nidulans_FGSC_A4:
+
+WKID 99.75%     KID 96.96%      matches 9696    compared 9720   taxID 227321    gSize 43368715  Aspergillus nidulans FGSC A4
+WKID 0.10%      KID 0.05%       matches 5       compared 5103   taxID 331117    gSize 14931471  Aspergillus fischeri NRRL 181
+WKID 0.06%      KID 0.04%       matches 4       compared 6204   taxID 1509407   gSize 18030896  Aspergillus nomius NRRL 13137
+WKID 0.05%      KID 0.04%       matches 4       compared 8485   taxID 5061      gSize 39417003  Aspergillus niger
+WKID 0.07%      KID 0.03%       matches 3       compared 4561   taxID 344612    gSize 13236981  Aspergillus clavatus NRRL 1
+WKID 0.06%      KID 0.03%       matches 3       compared 4654   taxID 330879    gSize 13837118  Aspergillus fumigatus Af293
+
+Total Time:     2.605 seconds.
+
+"matches" is the number of matching kmers (well, technically hash codes) between the query and reference sketch.  KID (or kmer identity) is simply the percent of the kmers that matched, while WKID is the weighted kmer identity, which has been adjusted to compensate for genome size.  For example, say human chromosome 1 is 8% of the human genome.  It would get a KID of 8% when compared to human, since it would only share 8% of the kmers, but the WKID would still be 100%.  So, that's the column that tells you the actual sequence similarity (disregarding size).
+
+taxID is the NCBI taxon identifier, gSize is the number of bases used to create the sketch, and "compared" basically tells you how many kmers were compared before the went out of the kmer range of the larger sketch (this is related to genome size and WKID calculation).
+
+As you can see, there are a few kmer hits to other Aspergillus strains, but what we have here is clearly Aspergillus nidulans.

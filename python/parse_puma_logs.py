@@ -28,7 +28,10 @@ def main(args):
     delim = args.delimiter
 
     contents = sh.ls(sh.glob(indir+"*fastq*dir/run_info*log"))
-
+    contents = [words for segments in contents for words in segments.split()] # split the elements in contents by space and put all in list
+    # the above is useful if the ls command lists multiple files on a single line which is treated as a single item in the contents list
+    print contents
+    #sys.exit()
 
     statistics_list = [["Sample", "Total reads processed", "Reads with adapters" , "Reads that were too short" , 
                         "Reads written (passing filters)", "Total basepairs processed" , "Total written (filtered)",
@@ -54,10 +57,19 @@ def main(args):
         
         #print "----After MEGAN----\n"
         grep_megan = sh.grep.bake("-A 16")
-        megan_ = grep_megan("Analyzing all matches", log)
-        #print megan_
 
-        for c in megan_:
+        megan_ = list()
+        try:
+            megan_ = grep_megan("\'Analyzing all matches\'", log)
+        except Exception, e:
+            print "Found nothing for megan in log"
+            print e.stderr
+            
+        
+        #print megan_
+        
+        if len(megan_) > 0:
+          for c in megan_:
             c = c.strip()
             if len(c.split(':')) > 1: 
                 numbs = [r.lstrip() for r in c.split(':')]

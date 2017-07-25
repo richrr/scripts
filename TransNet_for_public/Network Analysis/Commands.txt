@@ -1,0 +1,173 @@
+#### Preparing Your Computer ####
+
+### Step 1: Install Packages in R
+
+## CRAN
+install.packages(c("corpcor", "argparser", "hash", "psych", "gtools", "ggfortify", "doParallel", "doSNOW", "GGMridge", "igraph", "foreach", "reshape", "ctv",  "ggplot2"))
+
+## Bioconductor
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+biocLite("limma")
+
+### Step 2: Select CRAN (some number nearby)
+
+
+
+---------------------------------------------
+#### Analysis ####
+
+### Step 1: Spearman’s Rank Correlation Coefficient and Mann–Whitney U-test
+
+## Step 1.A: Access your data files. Adjustable for multiple datasets. The example given below will be for two datasets (experiments). Replace path and file name information in <> as needed. The following is applicable for all datasets where one is given as an example. 
+
+
+# Directions for Dataset 1
+
+Rscript <path to>/perform-analyses-bds-compatible.R <path to>/Dataset1.csv --lists <path to>/ID_List.txt <path to>/ID_List.txt --mapFile <path to>/Mapping_File.txt --mapColumns <Sample_Header> <Group_Header> --AnalysToDoList <path to>/Analysis_List.txt --comparMethod mw --correlMethod sp --symbolColumnName <Header_indicating_ID> --pairedInfoColumn <Header_indicating_paired_samples> --output <path to>/Output_
+
+# Note that:
+	## mapColumns and pairedInfoColumn refers to the headers from the mapping file
+	## symbolColumnName refers to the headers from the data file (Dataset1.csv)
+	## AnalysisToDoList refers to what analyses you want to conduct 
+	## comparMethod: Mann-Whitney U-Test
+	## correlMethod: Spearman's Rank Correlation Coefficient 
+
+
+### Step 2: Make Directories for Following Merged Comparisona and Correlation Analysis Files
+
+mkdir -p <path to>/<Title That Denotes Data Type>/merged/comp/
+mkdir -p <path to>/<Title That Denotes Data Type>/merged/corr/
+
+### Step 3: Look for consistent DEGS across experiments. Cutoffs and Thresholds are included but can be changed or removed. You can input a third dataset file if you have one. 
+
+# Directions 
+cd <path to>/<Title That Denotes Data Type>/merged/comp/
+mkdir -p mw_sp
+cd mw_sp
+Rscript <path to>/merge-comp-correl-result-files-bds-compatible.R --files <path to>/<Datset 1 Output File Name>_comp-output.csv <path to>/<Dataset 2 File Name>_comp-output.csv --parallel --output <merged_mw_sp_comp_p0.2>.csv --transposeOutput --pvalThreshold 0.2 --combPvalCutoff 0.05 --combFDRCutoff 0.1 --runfreqmerge
+
+### Step 4: Look For Consistent Correlations Across Experiments. Thresholds are included but can be changed or removed. You can input a third dataset file if you have one.  
+
+cd <path to>/<Title That Denotes Data Type>/merged/corr/
+mkdir -p mw_sp
+cd mw_sp
+Rscript <path to>/merge-comp-correl-result-files-bds-compatible.R --files <path to>/<Datset 1 Output File Name>_corr-output.csv <path to>/<Dataset 2 File Name>_corr-output.csv --parallel --output <merged_mw_sp_corr_p1>_ --transposeOutput --pvalThreshold 1
+
+
+### Step 5: Create one file (analysis-*-consistent-corr-dir.txt) for each correlation in the analysis file. 
+
+cd <path to>/merged/corr/mw_sp/p1/
+awk -v RS="" '{print $0 > ("./per_analysis/analysis-" NR "-consistent-corr-dir.txt")}' <Output>.csv
+
+
+---------------
+##NOTE: The following is per group. The file name (analysis-*-consistent-corr-dir.txt) does not correspond to the line number in the analysis file (like it did for the comp/p0.2/per_analysis/ folder), it corresponds to the correlation number in the analysis file. But if you open this file the top lines correspond to the line number in the analysis file.
+e.g. the attached sample analysis-1-consistent-corr-dir.txt corresponds to the first correlation (i.e. analysis number 2 (correlation of stool 4wk dietHFHS) as said in the top lines of the file) in the analysis file. These parts are extremely critical to your results, and need to be checked manually to avoid errors.
+---------------
+
+### Step 6: Create Networks 
+ 
+cd <path to>/merged/corr/mw_sp/p1/per_analysis/
+mkdir -p ind-pval_0.3_comb-pval_0.05_comb-fdr_0.1
+cd ind-pval_0.3_comb-pval_0.05_comb-fdr_0.1
+Rscript <path to>/create-network.R --file ../../../<merged_mw_sp_corr_p1>_FolChMedian_merged-parallel-output.csv --group <treatment> --consistent ../../analysis-1-consistent-corr-dir.txt --foldchange <path to>/merged/comp/mw_sp/p0.2/<merged_mw_sp_comp_p0.2>_FolChMedian_merged-parallel-output.csv --indivPvalCutoff 0.3 --combPvalCutoff 0.05 --analysisfc Analys\ 1\  --analysiscorr Analys\ 2\  --combFDRCutoff 0.1
+
+
+---------------------------------------------
+
+#### Example As Whole ####
+
+
+##Step 1:Spearman and Man Whitney
+# microbes - miseq 10 cqq
+Rscript perform-analyses-bds-compatible.R test_data/miseq10_css.unlog.quantif_quantile.txt.pheno.csv --lists test_data/overlapping_otu_ids_99perc_ca.txt test_data/overlapping_otu_ids_99perc_ca.txt --mapFile test_data/miseq10-mapping-file.txt --mapColumns SampleID Sample_typeTime_pointTreatment_per_Abx --AnalysToDoList test_data/prelimin-run-stool-ileum-abx-analysis.txt --comparMethod mw --correlMethod sp --symbolColumnName ID --pairedInfoColumn Mouse --output ./css.quantif_quantile/prelim_result/miseq10/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq10_" -m 150G -F 150G -r log_css.quantif_quantl_mw_sp_miseq10
+
+# microbes - miseq 11 cqq
+Rscript perform-analyses-bds-compatible.R test_data/miseq11_css.unlog.quantif_quantile.txt.pheno.csv --lists test_data/overlapping_otu_ids_99perc_ca.txt test_data/overlapping_otu_ids_99perc_ca.txt --mapFile test_data/miseq11-mapping-file.txt --mapColumns SampleID Sample_typeTime_pointTreatment_per_Abx --AnalysToDoList test_data/prelimin-run-stool-ileum-abx-analysis.txt --comparMethod mw --correlMethod sp --symbolColumnName ID --pairedInfoColumn Mouse --output ./css.quantif_quantile/prelim_result/miseq11/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq11_" -m 150G -F 150G -r log_css.quantif_quantl_mw_sp_miseq11 
+
+# microbes - miseq 12 cqq
+Rscript perform-analyses-bds-compatible.R test_data/miseq12_css.unlog.quantif_quantile.txt.pheno.csv --lists test_data/overlapping_otu_ids_99perc_ca.txt test_data/overlapping_otu_ids_99perc_ca.txt --mapFile test_data/miseq12-mapping-file.txt --mapColumns SampleID Sample_typeTime_pointTreatment_per_Abx --AnalysToDoList test_data/prelimin-run-stool-ileum-abx-analysis.txt --comparMethod mw --correlMethod sp --symbolColumnName ID --pairedInfoColumn Mouse --output ./css.quantif_quantile/prelim_result/miseq12/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq12_" -m 150G -F 150G -r log_css.quantif_quantl_mw_sp_miseq12
+
+##Step 2:Make necessary directories
+mkdir -p ./css.quantif_quantile/prelim_result/merged/comp/
+mkdir -p ./css.quantif_quantile/prelim_result/merged/corr/
+
+##Step 3:Look for consistent DEGS across experiments 
+cd ~/css.quantif_quantile/prelim_result/merged/comp/
+mkdir -p mw_sp_stool_ileum_abx_analysis
+cd mw_sp_stool_ileum_abx_analysis
+Rscript merge-comp-correl-result-files-bds-compatible.R --files ~/css.quantif_quantile/prelim_result/miseq11/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq11_comp-output.csv ~/css.quantif_quantile/prelim_result/miseq12/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq12_comp-output.csv ~/css.quantif_quantile/prelim_result/miseq10/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq10_comp-output.csv --parallel --output merged_mic_mw_sp_stool_ileum_abx_analysis_comp_p0.2_ --transposeOutput --pvalThreshold 0.2 --combPvalCutoff 0.05 --combFDRCutoff 0.1 --runfreqmerge
+
+##Step 4:Look for consistent correlations across experiments 
+cd ~/css.quantif_quantile/prelim_result/merged/corr/
+mkdir -p mw_sp_stool_ileum_abx_analysis
+cd mw_sp_stool_ileum_abx_analysis
+Rscript merge-comp-correl-result-files-bds-compatible.R --files ~/css.quantif_quantile/prelim_result/miseq11/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq11_corr-output.csv ~/css.quantif_quantile/prelim_result/miseq12/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq12_corr-output.csv ~/css.quantif_quantile/prelim_result/miseq10/mw_sp_stool_ileum_abx_analysis/mw_sp_miseq10_corr-output.csv --parallel --output merged_mic_mw_sp_stool_ileum_abx_analysis_corr_p1_ --transposeOutput --pvalThreshold 1
+
+
+##Step 5:Create one file (analysis-*-consistent-corr-dir.txt) for each correlation in the analysis file. 
+cd ~/css.quantif_quantile/prelim_result/merged/corr/mw_sp_stool_ileum_abx_analysis/p1/
+awk -v RS="" '{print $0 > ("./per_analysis/analysis-" NR "-consistent-corr-dir.txt")}' merged_mic_mw_sp_stool_ileum_abx_analysis_corr_p1_FolChMedian_merged-parallel-output.csv_pval_1_corr_0_foldch_0_consistent_results.csv
+
+---------------
+##NOTE: The following is per group. The file name (analysis-*-consistent-corr-dir.txt) does not correspond to the line number in the analysis file (like it did for the comp/p0.2/per_analysis/ folder), it corresponds to the correlation number in the analysis file. But if you open this file the top lines correspond to the line number in the analysis file.
+e.g. the attached sample analysis-1-consistent-corr-dir.txt corresponds to the first correlation (i.e. analysis number 2 (correlation of stool 4wk dietHFHS) as said in the top lines of the file) in the analysis file. 
+---------------
+
+##Step 6: 
+cd ~/css.quantif_quantile/prelim_result/merged/corr/mw_sp_stool_ileum_abx_analysis/p1/per_analysis/
+mkdir -p stool4wk\ dietHFHS/ind-pval_0.3_comb-pval_0.05_comb-fdr_0.1
+cd stool4wk\ dietHFHS/ind-pval_0.3_comb-pval_0.05_comb-fdr_0.1/
+Rscript create-network.R --file ../../../merged_mic_mw_sp_stool_ileum_abx_analysis_corr_p1_FolChMedian_merged-parallel-output.csv --group stool4wk\ dietHFHS --consistent ../../analysis-1-consistent-corr-dir.txt --foldchange ~/css.quantif_quantile/prelim_result/merged/comp/mw_sp_stool_ileum_abx_analysis/p0.2/merged_mic_mw_sp_stool_ileum_abx_analysis_comp_p0.2_FolChMedian_merged-parallel-output.csv --indivPvalCutoff 0.3 --combPvalCutoff 0.05 --analysisfc Analys\ 1\  --analysiscorr Analys\ 2\  --combFDRCutoff 0.1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
