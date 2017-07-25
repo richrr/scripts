@@ -1052,12 +1052,12 @@ CalcComparisCor = function(pair, edata, c1, c2, dict, correlMethod, pairedd){
       #print(pv.dif.cor)
 
       #ret_result = c(r_12, r_34, res$p)  # OR
-      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
+      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , as.numeric(r_12) - as.numeric(r_34) , res$p)  # added corrA-corrB before pvalue
       #print(ret_result)
     } else {
         # because you still expect the correlations to be the same
         #ret_result = c(r_12, r_34, NA)    # OR
-        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA)
+        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA, NA)  # added corrA-corrB before pvalue
         #print("here")
     }
   
@@ -1096,8 +1096,9 @@ calculateComparisCorrelation = function (pairs, expressionData, c1, c2, dict, co
     method_label = correlMethod
     # append method used to column labels
     colnames(out) = c( paste("Analys", indxg, c1, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c1, method_label, "CategCorPVal",sep=" "), 
-    		       paste("Analys", indxg, c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c2, method_label, "CategCorPVal",sep=" "), 
-    		       paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))
+    		       paste("Analys", indxg, c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c2, method_label, "CategCorPVal",sep=" "),
+				   paste("Analys", indxg, method_label,c1,"vs",c2,"DiffCorrs",sep=" "),
+    		       paste("Analys", indxg, method_label,c1,"vs",c2,"pvalue",sep=" "))  
 
     # calculate FDR
     FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
@@ -1180,11 +1181,11 @@ CalcDeltaComparisCor = function(pair, edata, c1, c2, c3, c4, dict, correlMethod)
       #print(pv.dif.cor)
 
       #ret_result = c(r_12, r_34, res$p) # OR
-      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , res$p)
+      ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , as.numeric(r_12) - as.numeric(r_34) , res$p)  # added corrA-corrB before pvalue
     } else {
         # because you still expect the correlations to be the same
         #ret_result = c(r_12, r_34, NA) # OR
-        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA)
+        ret_result = c( as.vector(fca[-1]) , as.vector(fcb[-1]) , NA, NA)  # added corrA-corrB before pvalue
     }
 
     ret_result
@@ -1223,7 +1224,8 @@ calculateComparisDeltaCorrelation = function (pairs, expressionData, c1, c2, c3,
     # append method used to column labels
     colnames(out) = c(paste("Analys", indxg, c1, "minus" , c2, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c1, "minus" , c2, method_label, "CategCorPVal",sep=" "), 
     		      paste("Analys", indxg, c3, "minus" , c4, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c3, "minus" , c4, method_label, "CategCorPVal",sep=" "), 
-    		      paste("Analys", indxg, method_label, c1, "minus" , c2, "vs", c3, "minus" , c4, "pvalue",sep=" "))
+				  paste("Analys", indxg, method_label, c1, "minus" , c2, "vs", c3, "minus" , c4, "DiffCorrs",sep=" "),
+    		      paste("Analys", indxg, method_label, c1, "minus" , c2, "vs", c3, "minus" , c4, "pvalue",sep=" "))  
 
     # calculate FDR
     FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")

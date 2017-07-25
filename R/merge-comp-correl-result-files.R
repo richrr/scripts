@@ -340,7 +340,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
     
     list_rows_passing_consistency = list()
     
-    if(condition == "Coefficient"){
+    if(condition == "Coefficient" || condition == "DiffCorrs"){
         res_pos = apply(s_df, 1, function(x) sum(x > correlThreshold))
         res_neg = apply(s_df, 1, function(x) sum(x < correlThreshold))
         rows_passing_consistency = c()
@@ -440,6 +440,14 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
        out_res = append(out_res, checkConsistency_across_expts(subset_df, foldchVar, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+       #result_dumper = append(result_dumper, in_cols)
+       #result_dumper = append(result_dumper, out_res)
+       result_dumper[[length(result_dumper)+1]] <- out_res
+       
+   } else if(grepl("DiffCorrs", colnames(subset_df)[1])){
+       out_res = list()
+       out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
+       out_res = append(out_res, checkConsistency_across_expts(subset_df, "DiffCorrs", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -602,7 +610,7 @@ SameDirectionAndPvalue = function(analy_name_c_elem1, analy_name_c_elem2, p_elem
 
 
 #------------------------------------------------------------------
-
+# useless function. do not use
 #------------------------------------------------------------------
 CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_name_c_elem3, p_elem1, p_elem2, p_elem3){
 
@@ -666,7 +674,8 @@ while(analys_processed < length(result_dumper)){
     # contains foldchange
     res_foldch = lapply(analy_name_c_elem1, function(x) grepl(foldchVar, x))
     # contains coefficient
-    res_coeff = lapply(analy_name_c_elem1, function(x) grepl("Coefficient", x))
+    # res_coeff = lapply(analy_name_c_elem1, function(x) grepl("Coefficient", x)) 
+	res_coeff = lapply(analy_name_c_elem1, function(x) grepl(paste(c("Coefficient", "DiffCorrs"), collapse = "|"), x)) # --(1) treats normal and diff corr the same
     # contains pvalue
     res_pvalu = lapply(analy_name_c_elem2, function(x) grepl("pvalue", x))
 
@@ -688,20 +697,25 @@ while(analys_processed < length(result_dumper)){
         l_strr = SameDirectionAndPvalue(analy_name_c_elem1, analy_name_c_elem2, p_elem1, p_elem2, merged_df, "FC")
         consis_strr = paste(consis_strr, l_strr, sep='\n')
         analys_processed = analys_processed + 2 # foldch and pvalue   
-    } else { 
+    } else {  # ignore this code. does nothing. the difference of correlations (or delta correlations) is treated the same way as normal correlations. See --(1)
         # coefficient, coefficient and pvalue
         p_elem3 = result_dumper[[analys_processed+2]]
         elem3 = p_elem3[1] # child element "name"
         analy_name_c_elem3 = elem3[[1]] # this returns a vector of all the elements in the child element "name"
         res_pvalu = lapply(analy_name_c_elem3, function(x) grepl("pvalue", x))
         
-        if(  identical(unique(res_coeff) , unique(res_pvalu))  ){
-            l_strr = CompareCorrelations(analy_name_c_elem1, analy_name_c_elem2, analy_name_c_elem3, p_elem1, p_elem2, p_elem3)
-            consis_strr = paste(consis_strr, l_strr, sep='\n')
-            analys_processed = analys_processed + 3 # coefficient, coefficient and pvalue
-        } else { 
-            print("C: something ridiculous happened here, so I quit"); quit() 
-        }  
+		if(FALSE){  ### skip the useless code for now
+			if(  identical(unique(res_coeff) , unique(res_pvalu))  ){
+				l_strr = CompareCorrelations(analy_name_c_elem1, analy_name_c_elem2, analy_name_c_elem3, p_elem1, p_elem2, p_elem3)
+				consis_strr = paste(consis_strr, l_strr, sep='\n')
+				analys_processed = analys_processed + 3 # coefficient, coefficient and pvalue
+			} else { 
+				print("C: something ridiculous happened here, so I quit"); quit() 
+			} 
+		} else {
+		  # so it moves to the next iteration.
+			analys_processed = analys_processed + 1 
+		}
     } 
 }
 
