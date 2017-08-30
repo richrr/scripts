@@ -10,25 +10,8 @@ import csv
 # or run the next (create network) command to calc the combined pval and fdr.
 
 
-############ not required ####################
-# cut the required columns outside python and give it as input
-# cd /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/analysis/merged/corr/gexpress/stage-ltest_corr/p1
-# head -50000 merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv | cut -d, -f 1-5 > testing.csv
-# head -50000 merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv > testing2.csv
-
-# python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py testing.csv 1 2
-# python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py testing2.csv 1 2
-################################################
-
-
 # cd /nfs3/PHARM/Morgun_Lab/richrr/Cervical_Cancer/analysis/merged/corr/gexpress/stage-ltest_corr/p1
 
-# submitted the job on biomed for testing with p and pool of 24
-#SGE_Batch -c "python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv 1 2" -m 150G -F 100G -r log_merge-py_test -q biomed -M rodrrich@oregonstate.edu -P 24
-# * Your job 1191148 ("log_merge-py_test") has been submitted
-# this was very very fast. See if results are correct. and use this instead of R.
-
-# since it was very fast and low system usage, kept the number of processes in pool to 30 and then run
 """
 SGE_Batch -c "python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv 1 2" -m 150G -F 100G -r log_merge-py_1 -q biomed -M rodrrich@oregonstate.edu -P 8
 
@@ -37,11 +20,6 @@ SGE_Batch -c "python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py
 SGE_Batch -c "python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv 3 2" -m 150G -F 100G -r log_merge-py_3 -q biomed -M rodrrich@oregonstate.edu -P 8
 
 SGE_Batch -c "python ~/Morgun_Lab/richrr/scripts/python/merging-python-script.py merged_gexp_sp_corr_p1_FolChMedian_merged-parallel-output.csv-comb-pval-output.csv 4 2" -m 150G -F 100G -r log_merge-py_4 -q biomed -M rodrrich@oregonstate.edu -P 8
-
-# 1191150-53
-
-#### double check results and if it works out well, then rename the merged file used for karen cc analysis
-# and then run this code on her data on bionets.
 
 """
 
@@ -123,7 +101,7 @@ with open(OUTfile, 'w') as of:
 #print result
 
 # quick and dirty command to get the first column of the file:
-cutcmd = "cut -d, -f 1 | " + OUTfile + " > " + OUTfile + "-ids.csv"
+cutcmd = "cut -d, -f 1 " + OUTfile + " > " + OUTfile + "-ids.csv"
 os.system(cutcmd)  
 
 
