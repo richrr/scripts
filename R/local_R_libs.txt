@@ -124,3 +124,9 @@ copy from C:\Windows\Fonts and paste in \\files.cgrb.oregonstate.edu\RAID1\home\
 # https://community.linuxmint.com/tutorial/view/29
 mv fonts .fonts
 fc-cache -fv
+
+
+install.packages("ggrepel")
+
+
+
