@@ -307,7 +307,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
    result = cbind(result,combinedFDR)
    #print(head(result))
-   write.csv (result,paste( outputFile, paste(search_group_santized,collapse='_'), "tmp-out.csv", sep='-'))
+   #write.csv (result,paste( outputFile, paste(search_group_santized,collapse='_'), "tmp-out.csv", sep='-'))
    
    
  
@@ -436,7 +436,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	#print("there")
 	print(colnames(outForPUC))
 	
-	write.csv(outForPUC, "tmp-nopuc-file.csv", quote=F)
+	#write.csv(outForPUC, "tmp-nopuc-file.csv", quote=F)
 	
     for(search_gr in search_group){
 	
@@ -467,9 +467,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 			pdff = cbind(pdff, IfFoldChangeDirectionMatch, matchedExpressionDirection, prod_fc_corr_dir)
 			
 			#print(head(pdff, 6))
-			
-			####################### this needs to be hashed out ##################
-			#PUC = apply(pdff, 1, function(x) {ifelse((x == 1), (IfFoldChangeDirectionMatch * matchedExpressionDirection) , 0)} )
+			# if the corr is not consistent in cohorts, make puc 0
 			PUC = ifelse(pdff[, local_consis_search] == 1, pdff$prod_fc_corr_dir,0 )
 			
 			outForPUC = cbind(outForPUC,PUC)
