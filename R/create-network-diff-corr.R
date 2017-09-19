@@ -85,7 +85,9 @@ if(analysisfc != "ALL" || analysiscorr != "ALL"){
   outputFile = gsub(' ', '_', outputFile)
 }
 
-networkFile = paste(c(outputFile, search_group_santized, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
+#networkFile = paste(c(outputFile, search_group_santized, "indiv-pval", individualPvalueCutoff ,"comb-pval", combinedPvalueCutoff, "comb-fdr", combinedFDRCutoff, ".csv"), collapse='_')
+networkFile = paste(c(outputFile, search_group_santized, ".csv"), collapse='_')
+
 
 
 #------------------------------------------------------------------------------------------------
@@ -122,7 +124,7 @@ remove_redundant_columns = function(this_df, total_numb_input_files){
 #------------------------------------------------------------------------------------------------
 calc_combined_coeff_pval_fdr = function(ldf){
 	
-   print("here")
+   #print("here")
    for(search_gr in search_group){
    
 
@@ -374,7 +376,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	outForPUC = calc_combined_coeff_pval_fdr(outForPUC)
 	#print(head(outForPUC))
 	
-		
+	IfFoldChangeDirectionMatch = ''	
     if(noPUC){
            # no need to look up the fold change
     } else {
@@ -391,64 +393,91 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 		#print(head(FoldMetab2_InPair))
 		
 		outForPUC = cbind(outForPUC,FoldMetab1_InPair,FoldMetab2_InPair)
+		
+		# calculate fold change direction for each partner
+		FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
+		FoldChangeData = outForPUC[,FoldChangeColnames]
+		
+
+		#print(head(FoldChangeData))
+		
+		FoldChangeDirection = NA
+
+		#if (foldchthresh==0){
+		#    FoldChangeDirection <- as.matrix(FoldChangeData)
+		#    FoldChangeDirection[FoldChangeDirection<0] <- -1
+		#    FoldChangeDirection[FoldChangeDirection>=0] <- 1
+		#    FoldChangeDirection = as.data.frame(FoldChangeDirection)
+		#    #print(head(FoldChangeDirection))
+		#} else { # for unlog data
+			FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
+		#}
+		names(FoldChangeDirection) = c()
+		colnames(FoldChangeDirection) = paste(colnames(FoldChangeData),"FoldChangeDirection",sep=".")
+		
+		# calculate if fold change direction are the same for the two partners
+		IfFoldChangeDirectionMatch = apply(FoldChangeDirection,1,prod)
+		names(IfFoldChangeDirectionMatch) = c()
+		
+		outForPUC = cbind(outForPUC,FoldChangeDirection,IfFoldChangeDirectionMatch)
 	}
 	
-	print(head(outForPUC))
+	#print(head(outForPUC))
 	
 
 	#########
 	# calc puc using the normal correlation, instead of diff correlation
-	##########
-	
-	### to do: ####
-    # calculate correlation Direction For combined correlation coefficient for each group of interest 
-	###### at this point we only have the consistent pairs left, so the value of combined corr coeff is ok to use
+	#
+    # calculate correlation Direction For combined correlation coefficient for each group of interest (combCategCoeff) 
 	###### IF inconsistent just treat the puc as 0
-    interestedCoefficientColnames = grep("Coefficient",colnames(outForPUC), value=TRUE, fixed=TRUE)     
-	print(interestedCoefficientColnames)
-	interestedCorrelationData = outForPUC[,interestedCoefficientColnames, drop=FALSE]
-	interestedCorrelationData = apply(interestedCorrelationData,2,function(x){as.numeric(as.vector(x))})
-	signOfInterestedCorrelationData = interestedCorrelationData/abs(interestedCorrelationData)
-	rownames(signOfInterestedCorrelationData) = c()
-	colnames(signOfInterestedCorrelationData) = paste(colnames(interestedCorrelationData),"correlationDirection",sep=".")
-	matchedExpressionDirection = signOfInterestedCorrelationData
+		## check if the pass consis column is 1 and continue with the rest else set the puc column to 0
 	
 	
-	if(noPUC){
-	   # no need to loop up the fold change direction
-	   outForPUC = cbind(outForPUC,signOfInterestedCorrelationData)
-	} else {
-	# calculate fold change direction for each partner
-	FoldChangeColnames = colnames(outForPUC)[grep("FoldChange",colnames(outForPUC))] # since this is using the combined fold change calculated above, you do not need the foldchVar variable
-	FoldChangeData = outForPUC[,FoldChangeColnames]
+	#print("there")
+	print(colnames(outForPUC))
 	
+	write.csv(outForPUC, "tmp-nopuc-file.csv", quote=F)
+	
+    for(search_gr in search_group){
+	
+		interestedCoefficientColnames = grep(paste("combCategCoeff", search_gr, sep='_'),colnames(outForPUC), value=TRUE, fixed=TRUE)     
+		print(interestedCoefficientColnames)
+		
+		interestedCorrelationData = outForPUC[,interestedCoefficientColnames, drop=FALSE]
+		interestedCorrelationData = apply(interestedCorrelationData,2,function(x){as.numeric(as.vector(x))})
+		signOfInterestedCorrelationData = interestedCorrelationData/abs(interestedCorrelationData)
+		rownames(signOfInterestedCorrelationData) = c()
+		colnames(signOfInterestedCorrelationData) = paste(colnames(interestedCorrelationData),"correlationDirection",sep=".")
+		matchedExpressionDirection = signOfInterestedCorrelationData
+		colnames(matchedExpressionDirection) = c()
 
-	#print(head(FoldChangeData))
-	
-	FoldChangeDirection = NA
-
-	#if (foldchthresh==0){
-	#    FoldChangeDirection <- as.matrix(FoldChangeData)
-	#    FoldChangeDirection[FoldChangeDirection<0] <- -1
-	#    FoldChangeDirection[FoldChangeDirection>=0] <- 1
-	#    FoldChangeDirection = as.data.frame(FoldChangeDirection)
-	#    #print(head(FoldChangeDirection))
-	#} else { # for unlog data
-	    FoldChangeDirection = (FoldChangeData-1)/abs(FoldChangeData-1)
-	#}
-	names(FoldChangeDirection) = c()
-	colnames(FoldChangeDirection) = paste(colnames(FoldChangeData),"FoldChangeDirection",sep=".")
-	
-	# calculate if fold change direction are the same for the two partners
-	IfFoldChangeDirectionMatch = apply(FoldChangeDirection,1,prod)
-	names(IfFoldChangeDirectionMatch) = c()
-	colnames(matchedExpressionDirection) = c()
-	
-	# use "matchedExpressionDirection" and "IfFoldChangeDirectionMatch" to calc PUC, i.e. if these two are the same PUC=1 (good)
-	PUC = IfFoldChangeDirectionMatch * matchedExpressionDirection 
-	outForPUC = cbind(outForPUC,signOfInterestedCorrelationData,FoldChangeDirection,IfFoldChangeDirectionMatch,PUC)
+		
+		outForPUC = cbind(outForPUC,signOfInterestedCorrelationData)
+		
+		if(!noPUC){
+			
+			local_consis_search = paste("pass_consis", search_gr, sep='_')
+			#print(head(outForPUC[,local_consis_search,drop=F]))
+			
+			# use "matchedExpressionDirection" and "IfFoldChangeDirectionMatch" to calc PUC, i.e. if these two are the same PUC=1 (good)
+			pdff = outForPUC[, local_consis_search,drop=F]
+			
+			prod_fc_corr_dir = IfFoldChangeDirectionMatch * matchedExpressionDirection
+			
+			pdff = cbind(pdff, IfFoldChangeDirectionMatch, matchedExpressionDirection, prod_fc_corr_dir)
+			
+			#print(head(pdff, 6))
+			
+			####################### this needs to be hashed out ##################
+			#PUC = apply(pdff, 1, function(x) {ifelse((x == 1), (IfFoldChangeDirectionMatch * matchedExpressionDirection) , 0)} )
+			PUC = ifelse(pdff[, local_consis_search] == 1, pdff$prod_fc_corr_dir,0 )
+			
+			outForPUC = cbind(outForPUC,PUC)
+			colnames(outForPUC)[colnames(outForPUC)=="PUC"] <- paste("PUC", search_gr, sep='_')
+			#print(head(outForPUC))
         }
-        
+		
+    }   
 	return(outForPUC)
 		
 } 
@@ -466,62 +495,66 @@ forPUC = function(FoldChangeMetabolic,noPUC){
         file.remove(PUCoutfile)
     }
 
-	# do this for each group
 	
 	#print(head(result))
 	
     result = forPUC(FoldChangeMetabolic,noPUC)
+	write.csv (result,networkFile, quote=FALSE)
 
+    q()
+	
+	if(FALSE){
+	
+      data = result
     
-    data = result
-    
-    if(noPUC){
+      if(noPUC){
            # no need to calc stats
-    } else {
+      } else {
 
-    # calculate percentage of unexpected correlations in the entire file
-    print("Total items")
-    DEN = length(result[,"PUC"])
-    print(DEN)
+		# calculate percentage of unexpected correlations in the entire file
+		print("Total items")
+		DEN = length(result[,"PUC"])
+		print(DEN)
 
-    print("Items not 1")
-    NUM = DEN - length(result[which(result[,"PUC"]==1), "PUC"])       
-    print(NUM)
-    
-    PUC_Prop = as.numeric(NUM*100/DEN)
-    print(PUC_Prop)
-    PUC_Prop = paste(c("Percentage of Unexpected Correlation=" , PUC_Prop, "%") , collapse='')
-       
+		print("Items not 1")
+		NUM = DEN - length(result[which(result[,"PUC"]==1), "PUC"])       
+		print(NUM)
+		
+		PUC_Prop = as.numeric(NUM*100/DEN)
+		print(PUC_Prop)
+		PUC_Prop = paste(c("Percentage of Unexpected Correlation=" , PUC_Prop, "%") , collapse='')
+		   
 
-    if(file.exists(PUCoutfile)){
-      out = file(PUCoutfile ,'a')
-      write.csv(result, file=out, row.names=FALSE)
-      close(out)
-    } else{
-      write.csv(result, PUCoutfile ,row.names=FALSE)
-    }
+		if(file.exists(PUCoutfile)){
+		  out = file(PUCoutfile ,'a')
+		  write.csv(result, file=out, row.names=FALSE)
+		  close(out)
+		} else{
+		  write.csv(result, PUCoutfile ,row.names=FALSE)
+		}
 
-    if(file.exists(PUCoutfile)){
-      out = file(PUCoutfile ,'a')
-      write.csv(PUC_Prop, file=out, row.names=FALSE)
-      close(out)
-    }
+		if(file.exists(PUCoutfile)){
+		  out = file(PUCoutfile ,'a')
+		  write.csv(PUC_Prop, file=out, row.names=FALSE)
+		  close(out)
+		}
 
-    print("Done with PUC")
+		print("Done with PUC")
 
-    # sort as per combined fdr
-    sorted_result = result[order(result$"combinedFDR"), ]
-    plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
-    write.csv(plt, paste(PUCoutfile, "all-edges.csv", sep='.'), row.names=FALSE)
+		# sort as per combined fdr
+		sorted_result = result[order(result$"combinedFDR"), ]
+		plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
+		write.csv(plt, paste(PUCoutfile, "all-edges.csv", sep='.'), row.names=FALSE)
 
-    pos_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedDiffCoefficient.correlationDirection == 1),], "pos") # walk along fdr and calc puc at diff fdr
-    write.csv(pos_plt, paste(PUCoutfile, "pos-edges.csv", sep='.'), row.names=FALSE)
+		pos_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedDiffCoefficient.correlationDirection == 1),], "pos") # walk along fdr and calc puc at diff fdr
+		write.csv(pos_plt, paste(PUCoutfile, "pos-edges.csv", sep='.'), row.names=FALSE)
 
-    neg_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedDiffCoefficient.correlationDirection == -1),], "neg") # walk along fdr and calc puc at diff fdr
-    write.csv(neg_plt, paste(PUCoutfile, "neg-edges.csv", sep='.'), row.names=FALSE)
+		neg_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedDiffCoefficient.correlationDirection == -1),], "neg") # walk along fdr and calc puc at diff fdr
+		write.csv(neg_plt, paste(PUCoutfile, "neg-edges.csv", sep='.'), row.names=FALSE)
 
-    data = sorted_result
-    }
+		data = sorted_result
+		}
+	}
 
 
 
@@ -641,5 +674,5 @@ generateNetwork = function(){
 }
 
 
-    generateNetwork()
+    #generateNetwork()
 
