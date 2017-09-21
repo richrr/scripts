@@ -12,7 +12,7 @@ import sh
 def parse_count_files(f, delim='\t'):
     res = list()
     cont = read_file(f)
-    res.append(str(len(cont)))  # unique rows
+    #res.append(str(len(cont)))  # unique rows; however this might also contain empty rows
     vals = list()
     #print cont
     for l in cont:
@@ -21,6 +21,7 @@ def parse_count_files(f, delim='\t'):
             #print l
             c = l.split(delim)
             vals.append(int(c[1].strip()))
+    res.append(str(len(vals)))  # unique non-empty rows
     #print vals
     total = sum(vals)
     print total
