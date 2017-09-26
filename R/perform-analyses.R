@@ -64,6 +64,7 @@ p <- add_argument(p, "--logbase", help="calc log using the base", default=2)
 	# allowed: 0 (no log. be careful since this may mean that the data was logged outside this script), 1 (e), 2, 10
 p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0)
 
+p <- add_argument(p, "--stringtorelativize", help="string that indicates the entries to be relativized. Anything is allowed; however, mostly use OTU, SEED, ENSG, ENSMUSG, etc.", default="OTU") # see ensembl prefixs here https://www.uea.ac.uk/documents/429378/432070/Ensemble%2BPresentation.pdf/b5a33c43-1c4c-4677-b588-1a7cac8db622
 
 argv <- parse_args(p)
 #print (p)
@@ -619,7 +620,7 @@ print("Performing the frequency analyses.")
 
 fodir =  strsplit(argv$output, "/")[[1]]
 freqdir = paste(odir, "/freq/", fodir[length(fodir)], sep='')
-freqcmd= paste("Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/calc-frequency.R", argv$expressionDataFile, "--lists", list1File, list1File, "--mapFile", argv$mapFile, "--mapColumns", samplIdCol, exptCol, "--AnalysToDoList", argv$AnalysToDoList, "--comparMethod",  argv$comparMethod, "--correlMethod", argv$correlMethod, "--symbolColumnName", symbleColumnName, "--pairedInfoColumn", argv$pairedInfoColumn, "--output", freqdir, sep=" ")
+freqcmd= paste("Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/calc-frequency.R", argv$expressionDataFile, "--lists", list1File, list1File, "--mapFile", argv$mapFile, "--mapColumns", samplIdCol, exptCol, "--AnalysToDoList", argv$AnalysToDoList, "--comparMethod",  argv$comparMethod, "--correlMethod", argv$correlMethod, "--symbolColumnName", symbleColumnName, "--pairedInfoColumn", argv$pairedInfoColumn, "--output", freqdir, "--stringtorelativize", argv$stringtorelativize, sep=" ")
 
 system(freqcmd, wait=TRUE)
 

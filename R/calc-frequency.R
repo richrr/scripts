@@ -39,7 +39,7 @@ source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-fr
 #==================================================================================================================
 # parameters
 #==================================================================================================================
-p <- arg_parser('calc-frequency.R Calculates freq for OTUs')
+p <- arg_parser('calc-frequency.R Calculates freq for OTUs, genes, seed, etc.')
 p <- add_argument(p, "expressionDataFile", help="file containing values (measurements) to be used for correlation") # required
 
 # truly optional
@@ -63,11 +63,15 @@ p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="p
 p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
 p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0)
 
+p <- add_argument(p, "--stringtorelativize", help="string that indicates the entries to be relativized. Anything is allowed; however, mostly use OTU, SEED, ENSG, ENSMUSG, etc.", default="OTU") # see ensembl prefixs here https://www.uea.ac.uk/documents/429378/432070/Ensemble%2BPresentation.pdf/b5a33c43-1c4c-4677-b588-1a7cac8db622
+
+
 
 argv <- parse_args(p)
 #print (p)
 
 expressionDataFile = argv$expressionDataFile
+stringtorelativize = argv$stringtorelativize
 
 if(length(argv$lists)!= 2)
 {
@@ -269,8 +273,9 @@ expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.
 expressionData = expressionData[!duplicated(expressionData[,symbleColumnName]),]    #delete duplicated measurements (genes, taxa labels, phenotypic labels, etc.)
 rownames(expressionData) = expressionData[,symbleColumnName]
 
-## keep only OTUs
- oturows = grep("^OTU", rownames(expressionData), value = T)
+## keep only OTUs or the entries to be relativised
+ findrowsforrel = paste0("^", stringtorelativize)  # "^OTU"
+ oturows = grep(findrowsforrel, rownames(expressionData), value = T)
  expressionData =  expressionData[oturows ,]
 
 #if(logbase != 0){
