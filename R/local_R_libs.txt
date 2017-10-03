@@ -129,4 +129,8 @@ fc-cache -fv
 install.packages("ggrepel")
 
 
+source("https://bioconductor.org/biocLite.R")
+biocLite("DESeq2")
+library(DESeq2)
 
+install.packages("calibrate")
