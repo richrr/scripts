@@ -75,7 +75,7 @@ combinedPvalueCutoff = argv$combPvalCutoff
 combinedFDRCutoff = argv$combFDRCutoff
 
 # create if outdir doesn't exist:
-res_directory = paste(c("./p", pvalThreshold, "/"), collapse='')
+res_directory = paste(c("./p", pvalThreshold, "_cp", combinedPvalueCutoff, "_cfdr", combinedFDRCutoff, "/"), collapse='')
 dir.create(paste(res_directory, "per_analysis", sep=''), recursive = TRUE)
 outputFile = paste(res_directory, outputFile, sep='')
 
@@ -273,17 +273,42 @@ calc_comb_pval_fdr = function(in_df, total_numb_input_files, l_outputFile, apply
 
    # apply the cutoff
    if(applyCombCutoff){
-       outputFile_tr = paste(c(outputFile1,"combpval",combinedPvalueCutoff, "combfdr",combinedFDRCutoff,"cutoff.csv"),collapse='.')
-       #print(head(as.data.frame(comb_in_df)))
-       #quit()
-       new.data <- comb_in_df[comb_in_df$"combinedPvalue" < combinedPvalueCutoff  &  comb_in_df$"combinedFDR" < combinedFDRCutoff, ]
-       #new.data <- subset(as.data.frame(comb_in_df), "combinedPvalue" < combinedPvalueCutoff  &  "combinedFDR" < combinedFDRCutoff)
-       write.csv(new.data, outputFile_tr)
+   		
+		
+		outputFile_tr = paste(c(outputFile1,"-p", pvalThreshold,"combpval",combinedPvalueCutoff, "combfdr",combinedFDRCutoff,"cutoff.csv"),collapse='.')
+		#print(head(as.data.frame(comb_in_df)))
+		#quit()
+	   
+	    ### apply the individual pvalue cutoffs
+	   	# find significant in individual pvalue: all of the pvalues for all of the datasets for each pair must be smaller than threshold
+		# find pvalue data
+		# if it is a single dataset it becomes a vector so adding the drop=FALSE
+		pvalueData = comb_in_df[,grep("pvalue",colnames(comb_in_df)), drop=FALSE]
+		#pvalueData = pvalueData[,grep(search_group,colnames(pvalueData)), drop=FALSE]
+	
+		pvalueData = as.matrix(pvalueData)
+		pvalueData = apply(pvalueData,2,function(x){as.numeric(as.vector(x))})
+	
+		# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
+		passIndevidualPvalue = apply(pvalueData,1,max)<pvalThreshold
+		#print(passIndevidualPvalue)
+		comb_in_df = comb_in_df[passIndevidualPvalue, , drop=FALSE]
+			   
+	   
+		# apply the fisher and combfdr cuts
+		new.data <- comb_in_df[comb_in_df$"combinedPvalue" < combinedPvalueCutoff  &  comb_in_df$"combinedFDR" < combinedFDRCutoff, ]
+		#new.data <- subset(as.data.frame(comb_in_df), "combinedPvalue" < combinedPvalueCutoff  &  "combinedFDR" < combinedFDRCutoff)
+		write.csv(new.data, outputFile_tr)
        
-       # this prints only the row names incase you want to use this for calc correl of only these genes
-       out_vec = rownames(new.data)
-       write(out_vec, paste(outputFile_tr, "consis_genes.csv", sep='.'))
+		# this prints only the row names incase you want to use this for calc correl of only these genes
+		out_vec = rownames(new.data)
+		write(out_vec, paste(outputFile_tr, "consis_genes.csv", sep='.'))
        
+   } else{ # only output the consis genes as a file without cutoffs. mostly used for corr and diff corr files
+		
+		out_vec = rownames(comb_in_df)
+		write(out_vec, paste(outputFile1, "consis_genes.csv", sep='.'))
+   
    }
 
 
@@ -331,6 +356,54 @@ calc_comb_pval_fdr(merged_df, total_numb_input_files, outputFile)
 
 
 
+
+#------------------------------------------------------------------
+# this finds the analysis number 
+#------------------------------------------------------------------
+find_analysis_number = function(x){
+   #res = as.numeric(str_match(x, "Analys ([0-9]+) .*")[,2])
+   res = str_match(x, "Analys ([0-9]+-?[0-9]*) .*")[,2]
+   res
+}
+
+
+
+#------------------------------------------------------------------
+# Calc comb p val and fdr for consistent genes/pairs (based on FC/Coeff and pvalue) per analysis 
+#------------------------------------------------------------------
+CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df, analys_type){
+
+  analyses = paste(c("Analys ", l_strr, " "), collapse='')
+  
+  # paste(c(res_directory, "per_analysis/","Analys ", l_strr, " "), collapse='')
+  #print(analyses)
+  #print(length(consis_elem))
+  
+  #print(rownames(merged_df))
+  
+  select_analys_cols = grep(analyses, colnames(merged_df), value=T)
+  
+  tmp_out_df = merged_df[consis_elem, select_analys_cols]
+  #print(nrow(tmp_out_df))
+  
+  o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(res_directory, "per_analysis/",analyses, "-consis.csv", sep=''))
+  
+  #print(head(tmp_out_df))
+
+  if(nrow(tmp_out_df) > 0){ # if no genes have reached uptil this point, no point to call the function
+	if(analys_type == "FC"){
+      calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, TRUE)
+	} else {  # for corr and diffcorr
+	  calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, FALSE)
+	}
+  }
+
+}
+
+
+
+
+
 #------------------------------------------------------------------
 # check which measurement ("gene") or pairs have the same trend across experiments
 # identify the rows where values are >/< than threshold
@@ -339,7 +412,12 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
 
     
     list_rows_passing_consistency = list()
-    
+    	
+	resl=unique(unlist(lapply(colnames(s_df), find_analysis_number)))
+	print(resl)
+	
+	consistent_rows_per_analysis = c()
+	
     if(condition == "Coefficient" || condition == "DiffCorrs"){
         res_pos = apply(s_df, 1, function(x) sum(x > correlThreshold))
         res_neg = apply(s_df, 1, function(x) sum(x < correlThreshold))
@@ -353,6 +431,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         }
         #list_rows_passing_consistency[[1]] = rows_passing_consistency
         list_rows_passing_consistency$PosCorrel = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
 
         rows_passing_consistency = c()
         #print("Negative correlation")
@@ -364,6 +443,13 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         }
         #list_rows_passing_consistency[[2]] = rows_passing_consistency
         list_rows_passing_consistency$NegCorrel = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+		##### send this for per analysis #####
+	    # this part is useful to calc. comb FDR on only the consistent genes
+        CalcCombPvalFdrPerAnalysis(resl, consistent_rows_per_analysis, merged_df, "CORR")
+
+		
 
     } else if(condition == "pvalue"){
         res_pos = apply(s_df, 1, function(x) sum(x < pvalThreshold))
@@ -377,6 +463,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         }
         #list_rows_passing_consistency[[1]] = rows_passing_consistency
         list_rows_passing_consistency$PvalThresh = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
 
     } else if(condition == foldchVar){
         res_pos = apply(s_df, 1, function(x) sum(x > foldchThreshold))
@@ -391,6 +478,7 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         }
         #list_rows_passing_consistency[[1]] = rows_passing_consistency
         list_rows_passing_consistency$Upreg = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
 
         rows_passing_consistency = c()
         #print("Down regulation")
@@ -402,9 +490,18 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
         }
         #list_rows_passing_consistency[[2]] = rows_passing_consistency
         list_rows_passing_consistency$Dwnreg = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
 
-    } 
-    #print(list_rows_passing_consistency)
+		##### send this for per analysis #####
+	    # this part is useful to calc. comb FDR on only the consistent genes
+        CalcCombPvalFdrPerAnalysis(resl, consistent_rows_per_analysis, merged_df, "FC")
+
+    }
+	
+	
+	print(consistent_rows_per_analysis)
+    print(list_rows_passing_consistency)
+	
     return(list_rows_passing_consistency)
 }
 
@@ -413,13 +510,13 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
 # check Consistency across ALL expts using the thresholds 
 #------------------------------------------------------------------
 result_dumper = list()  # to dump the consistent results in output files
+
 cols_processed = 1
 while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps of (number of input files)
 {
    subset_df = merged_df[,cols_processed:(cols_processed+total_numb_input_files-1)]
    cols_processed = cols_processed + total_numb_input_files
-
-   
+  
    if(grepl("Coefficient", colnames(subset_df)[1])){
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
@@ -429,12 +526,13 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
        result_dumper[[length(result_dumper)+1]] <- out_res
        
    } else if(grepl("pvalue", colnames(subset_df)[1])){
-       out_res = list()
-       out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "pvalue", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
-       #result_dumper = append(result_dumper, in_cols)
-       #result_dumper = append(result_dumper, out_res)
-       result_dumper[[length(result_dumper)+1]] <- out_res
+       ### Do NOTHING ###
+	   #out_res = list()
+       #out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
+       #out_res = append(out_res, checkConsistency_across_expts(subset_df, "pvalue", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+       ##result_dumper = append(result_dumper, in_cols)
+       ##result_dumper = append(result_dumper, out_res)
+       #result_dumper[[length(result_dumper)+1]] <- out_res
        
    } else if(grepl(foldchVar, colnames(subset_df)[1])){
        out_res = list()
@@ -483,16 +581,6 @@ write(strr, file=outputFile1)
 
 
 #------------------------------------------------------------------
-# this finds the analysis number 
-#------------------------------------------------------------------
-find_analysis_number = function(x){
-   #res = as.numeric(str_match(x, "Analys ([0-9]+) .*")[,2])
-   res = str_match(x, "Analys ([0-9]+-?[0-9]*) .*")[,2]
-   res
-}
-
-
-#------------------------------------------------------------------
 # finds which gene (or pairs) show consistency (across expts) in multiple aspects of the same analysis (e.g. direction of comparison (or correlation) and sign of pval)
 #------------------------------------------------------------------
 extract_common_vals = function(nam, searchIn, searchThese){
@@ -514,35 +602,6 @@ extract_common_vals_3_vectors = function(names, searchIn1, searchIn2, searchThes
  }
  res
 }
-
-
-#------------------------------------------------------------------
-# Calc comb p val and fdr for consistent genes/pairs (based on FC/Coeff and pvalue) per analysis 
-#------------------------------------------------------------------
-CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df){
-
-  analyses = paste(c("Analys ", l_strr, " "), collapse='')
-  
-  # paste(c(res_directory, "per_analysis/","Analys ", l_strr, " "), collapse='')
-  #print(analyses)
-  #print(length(consis_elem))
-  
-  #print(rownames(merged_df))
-  
-  select_analys_cols = grep(analyses, colnames(merged_df), value=T)
-  
-  tmp_out_df = merged_df[consis_elem, select_analys_cols]
-  #print(nrow(tmp_out_df))
-  
-  o_f_name_cmob_pval_fdr = gsub(' ' , '', paste(res_directory, "per_analysis/",analyses, paste(c("-p", pvalThreshold), collapse=''), "-consis.csv", sep=''))
-  
-  #print(head(tmp_out_df))
-  if(nrow(tmp_out_df) > 0){ # if no genes have reached uptil this point, no point to call the function
-      calc_comb_pval_fdr(tmp_out_df, total_numb_input_files, o_f_name_cmob_pval_fdr, TRUE)
-  }
-
-}
-
 
 
 #------------------------------------------------------------------
@@ -652,6 +711,13 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
 
 }
 
+
+q()
+
+##############
+## Figure out what to do next.
+# Basically, use these consistent genes per analysis to cal the FDR and apply cutoffs.
+#############
 
 
 
