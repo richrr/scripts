@@ -18,7 +18,6 @@ library(argparser)
 library(stringr)
 
 
-# will try to speed up the code using parallelization
 
 #==================================================================================================================
 # parameters
@@ -50,10 +49,13 @@ p <- add_argument(p, "--transposeOutput", help="tranpose the results so the rows
 
 p <- add_argument(p, "--runfreqmerge", help="run merging for freq. use only for genes NOT pairs", flag=TRUE)
 
+p <- add_argument(p, "--multicore", help="run merging in multicore/multiprocessors", flag=TRUE)
+p <- add_argument(p, "--cores", help="use these many cores", default=8, type="numeric") 
 
  
 argv <- parse_args(p)
 #print (p)
+
 
 
 if(length(argv$files) < 2)
@@ -66,6 +68,8 @@ if(argv$majority){
   print("This option has not yet been implemented. Bye!")
   quit()
 }
+
+
 
 outputFile = argv$output
 correlThreshold = argv$correlThreshold 
@@ -80,11 +84,27 @@ res_directory = paste(c("./p", pvalThreshold, "_cp", combinedPvalueCutoff, "_cfd
 dir.create(paste(res_directory, "per_analysis", sep=''), recursive = TRUE)
 outputFile = paste(res_directory, outputFile, sep='')
 
+allowed_cores = argv$cores
 
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
 
 outputFile = paste(outputFile , foldchVar, '_', sep='')
+
+
+if(argv$multicore){
+	library(foreach)
+	library(doParallel)
+	#library(doSNOW) # print output on screen  
+    
+	# http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/
+	# using fork instead of the default psock system to hopefully allow access to all variables & libs
+	cl <<- makeCluster(allowed_cores, type="FORK")
+	#cl <<- makeCluster(allowed_cores, outfile="")  # print output on screen  
+	#registerDoSNOW(cl) # print output on screen
+
+}
+
 
 # number of columns
 max_numb_cols = 0
@@ -403,16 +423,117 @@ CalcCombPvalFdrPerAnalysis = function(l_strr, consis_elem, merged_df, analys_typ
 }
 
 
+#------------------------------------------------------------------
+# Parallelized: check which measurement ("gene") or pairs have the same trend across experiments
+# identify the rows where values are >/< than threshold
+#------------------------------------------------------------------
+checkConsistency_across_expts_parallel = function(s_df, condition, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold){
+    
+    list_rows_passing_consistency = list()
+    	
+	resl=unique(unlist(lapply(colnames(s_df), find_analysis_number)))
+	print(resl)
+	
+	consistent_rows_per_analysis = c()
+	
+    if(condition == "Coefficient" || condition == "DiffCorrs"){
+        res_pos = parApply(cl, s_df, 1, function(x) sum(x > correlThreshold))
+		res_neg = parApply(cl, s_df, 1, function(x) sum(x < correlThreshold))
+		
+        rows_passing_consistency = c()
+        #print("Positive correlation")
+        #print(head(res_pos))      		
+		rows_passing_consistency <- foreach(idx=1:nrow(s_df), .combine=c) %dopar% { 
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
+                rownames(s_df)[idx]
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$PosCorrel = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+        rows_passing_consistency = c()
+        #print("Negative correlation")
+        #print(head(res_neg))
+		rows_passing_consistency <- foreach(idx=1:nrow(s_df), .combine=c) %dopar% { 
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] == (total_numb_input_files)){
+                rownames(s_df)[idx]
+            }
+        }
+        #list_rows_passing_consistency[[2]] = rows_passing_consistency
+        list_rows_passing_consistency$NegCorrel = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+		##### send this for per analysis #####
+	    # this part is useful to calc. comb FDR on only the consistent genes
+        CalcCombPvalFdrPerAnalysis(resl, consistent_rows_per_analysis, merged_df, "CORR")
+
+		
+
+    } else if(condition == "pvalue"){
+        res_pos = apply(s_df, 1, function(x) sum(x < pvalThreshold))
+        rows_passing_consistency = c()
+        #print("Pass pvalue cutoff")
+        #print(head(res_pos))
+        for(idx in 1:nrow(s_df)){
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
+                rows_passing_consistency = append(rows_passing_consistency,rownames(s_df)[idx])
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$PvalThresh = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+    } else if(condition == foldchVar){
+        res_pos = parApply(cl, s_df, 1, function(x) sum(x > foldchThreshold))
+		res_neg = parApply(cl, s_df, 1, function(x) sum(x < foldchThreshold))
+
+        rows_passing_consistency = c()
+        #print("Up regulation")
+        #print(head(res_pos))
+		rows_passing_consistency <- foreach(idx=1:nrow(s_df), .combine=c) %dopar% { 
+            if((!is.na(res_pos[[idx]])) && res_pos[[idx]] == (total_numb_input_files)){
+                rownames(s_df)[idx]
+            }
+        }
+        #list_rows_passing_consistency[[1]] = rows_passing_consistency
+        list_rows_passing_consistency$Upreg = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+        rows_passing_consistency = c()
+        #print("Down regulation")
+        #print(head(res_neg))
+		rows_passing_consistency <- foreach(idx=1:nrow(s_df), .combine=c) %dopar% { 
+            if((!is.na(res_neg[[idx]])) && res_neg[[idx]] == (total_numb_input_files)){
+                rownames(s_df)[idx]
+            }
+        }
+        #list_rows_passing_consistency[[2]] = rows_passing_consistency
+        list_rows_passing_consistency$Dwnreg = rows_passing_consistency
+		consistent_rows_per_analysis = append(consistent_rows_per_analysis, rows_passing_consistency)
+
+		##### send this for per analysis #####
+	    # this part is useful to calc. comb FDR on only the consistent genes
+        CalcCombPvalFdrPerAnalysis(resl, consistent_rows_per_analysis, merged_df, "FC")
+
+    }
+	
+	
+	print(consistent_rows_per_analysis)
+    print(list_rows_passing_consistency)
+	
+    return(list_rows_passing_consistency)
+}
+
 
 
 
 #------------------------------------------------------------------
-# check which measurement ("gene") or pairs have the same trend across experiments
+# Sequential: check which measurement ("gene") or pairs have the same trend across experiments
 # identify the rows where values are >/< than threshold
 #------------------------------------------------------------------
 checkConsistency_across_expts = function(s_df, condition, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold){
 
-    
     list_rows_passing_consistency = list()
     	
 	resl=unique(unlist(lapply(colnames(s_df), find_analysis_number)))
@@ -508,6 +629,8 @@ checkConsistency_across_expts = function(s_df, condition, total_numb_input_files
 }
 
 
+
+
 #------------------------------------------------------------------
 # check Consistency across ALL expts using the thresholds 
 #------------------------------------------------------------------
@@ -522,7 +645,15 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
    if(grepl("Coefficient", colnames(subset_df)[1])){
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "Coefficient", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+	   
+	   tmp_tmp = ''
+	   if(argv$multicore){
+			tmp_tmp = checkConsistency_across_expts_parallel(subset_df, "Coefficient", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   } else {
+			tmp_tmp = checkConsistency_across_expts(subset_df, "Coefficient", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   }
+	   
+       out_res = append(out_res, tmp_tmp)
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -539,7 +670,15 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
    } else if(grepl(foldchVar, colnames(subset_df)[1])){
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, foldchVar, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+
+	   tmp_tmp = ''
+	   if(argv$multicore){
+			tmp_tmp = checkConsistency_across_expts_parallel(subset_df, foldchVar, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   } else {
+			tmp_tmp = checkConsistency_across_expts(subset_df, foldchVar, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   }
+	   
+       out_res = append(out_res, tmp_tmp)
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -547,7 +686,15 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
    } else if(grepl("DiffCorrs", colnames(subset_df)[1])){
        out_res = list()
        out_res$name = colnames(subset_df) #paste(colnames(subset_df), collapse='<-->')
-       out_res = append(out_res, checkConsistency_across_expts(subset_df, "DiffCorrs", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold))
+	   
+	   tmp_tmp = ''
+	   if(argv$multicore){
+			tmp_tmp = checkConsistency_across_expts_parallel(subset_df, "DiffCorrs", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   } else {
+			tmp_tmp = checkConsistency_across_expts(subset_df, "DiffCorrs", total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold)
+	   }
+	   
+       out_res = append(out_res, tmp_tmp)
        #result_dumper = append(result_dumper, in_cols)
        #result_dumper = append(result_dumper, out_res)
        result_dumper[[length(result_dumper)+1]] <- out_res
@@ -556,7 +703,8 @@ while(cols_processed < ncol(merged_df))  # loop over the merged dataset in steps
    
 }
 
-         
+
+
 #------------------------------------------------------------------
 # Print the consistent results for each aspect (e.g. pos correl, neg correl, pvalue, FC, etc.) to file 
 #print(result_dumper)
@@ -714,15 +862,20 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
 }
 
 
-q()
 
 ##############
-## Figure out what to do next.
 # Basically, use these consistent genes per analysis to cal the FDR and apply cutoffs.
 #############
 
 
+if(argv$multicore){
+	#stop cluster
+	stopCluster(cl)	
+}
 
+
+######## no longer need the code with pval cuts in addition to the FC, corr, or diffcorr cuts ##########
+if(FALSE){
 #------------------------------------------------------------------
 # Check which measurement ("gene") (or pairs) show same trends in multiple aspects of analysis across expts: same direction of comparison (or correlation) and sig pval across expts
 #------------------------------------------------------------------
@@ -793,6 +946,10 @@ write(consis_strr, file=outputFile2)
 
 finaloutputFile = paste(c(outputFile,  "pval", pvalThreshold ,"corr", correlThreshold, "foldch", foldchThreshold, "consistent_results.csv"), collapse='_')
 write(gsub(",", "\n", consis_strr), file=finaloutputFile)
+
+}
+###################################################################################
+
 
 
 if(argv$warnings){print(warnings())}
