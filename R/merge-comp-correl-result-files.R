@@ -17,6 +17,8 @@ library(argparser)
 #library(reshape)
 library(stringr)
 
+library(foreach)
+library(doParallel)
 
 
 #==================================================================================================================
@@ -84,7 +86,6 @@ res_directory = paste(c("./p", pvalThreshold, "_cp", combinedPvalueCutoff, "_cfd
 dir.create(paste(res_directory, "per_analysis", sep=''), recursive = TRUE)
 outputFile = paste(res_directory, outputFile, sep='')
 
-allowed_cores = argv$cores
 
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
@@ -92,19 +93,24 @@ if(argv$foldchMean){foldchVar = "FoldChange"}
 outputFile = paste(outputFile , foldchVar, '_', sep='')
 
 
+allowed_cores = 1
 if(argv$multicore){
-	library(foreach)
-	library(doParallel)
-	#library(doSNOW) # print output on screen  
+        allowed_cores = argv$cores
+	#library(foreach)
+	#library(doParallel)
+	##library(doSNOW) # print output on screen  
     
-	# http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/
-	# using fork instead of the default psock system to hopefully allow access to all variables & libs
-	cl <<- makeCluster(allowed_cores, type="FORK")
-	registerDoParallel(cl)
-	#cl <<- makeCluster(allowed_cores, outfile="")  # print output on screen  
-	#registerDoSNOW(cl) # print output on screen
+	## http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/
+	## using fork instead of the default psock system to hopefully allow access to all variables & libs
+	#cl <<- makeCluster(allowed_cores, type="FORK")
+	#registerDoParallel(cl)
+	##cl <<- makeCluster(allowed_cores, outfile="")  # print output on screen  
+	##registerDoSNOW(cl) # print output on screen
 
 }
+
+cl <<- makeCluster(allowed_cores, type="FORK")
+registerDoParallel(cl)
 
 
 # number of columns
@@ -869,10 +875,10 @@ CompareCorrelations = function(analy_name_c_elem1, analy_name_c_elem2, analy_nam
 #############
 
 
-if(argv$multicore){
+#if(argv$multicore){
 	#stop cluster
 	stopCluster(cl)	
-}
+#}
 
 
 ######## no longer need the code with pval cuts in addition to the FC, corr, or diffcorr cuts ##########
