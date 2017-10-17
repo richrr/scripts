@@ -100,6 +100,7 @@ if(argv$multicore){
 	# http://gforge.se/2015/02/how-to-go-parallel-in-r-basics-tips/
 	# using fork instead of the default psock system to hopefully allow access to all variables & libs
 	cl <<- makeCluster(allowed_cores, type="FORK")
+	registerDoParallel(cl)
 	#cl <<- makeCluster(allowed_cores, outfile="")  # print output on screen  
 	#registerDoSNOW(cl) # print output on screen
 
