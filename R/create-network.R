@@ -285,7 +285,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	FoldMetab2_InPair = FoldChangeMetabolic[as.vector(outForPUC[,"partner2"]),c("geneName", FoldChangeCol)]
 	colnames(FoldMetab2_InPair) = c("partner2InFold","partner2_FoldChange")
 
-        FoldMetab1_InPair = cbind(FoldMetab1_InPair[, 1, drop=F], unlog(FoldMetab1_InPair[, 2, drop=F], logbase))
+    FoldMetab1_InPair = cbind(FoldMetab1_InPair[, 1, drop=F], unlog(FoldMetab1_InPair[, 2, drop=F], logbase))
 	FoldMetab2_InPair = cbind(FoldMetab2_InPair[, 1, drop=F], unlog(FoldMetab2_InPair[, 2, drop=F], logbase))
 	#print(head(FoldMetab1_InPair))
 	#print(head(FoldMetab2_InPair))

@@ -201,9 +201,14 @@ if("contrastFC.x" %in% colnames(cmpdf)){
 	contrstfcCol = "contrastFC.x"
 }
 
-# select the otus that have 1 in contrastFC and freqplayer
-selOTUs = cmpdf[cmpdf[,contrstfcCol]==1 & cmpdf[,"freqplayer"]==1,"ID"]
-
+selOTUs = ''
+if(length(args) == 3){
+	# select the otus that have 1 in contrastFC and freqplayer
+	selOTUs = cmpdf[cmpdf[,contrstfcCol]==1 & cmpdf[,"freqplayer"]==1,"ID"]
+} else if (length(args) > 3 && args[4] == "nocontrastfc"){
+# select the otus that have 1 in freqplayer
+	selOTUs = cmpdf[cmpdf[,"freqplayer"]==1,"ID"]
+}
 # add the "<==>" string to avoid selecting other otus that are partial match of the shortlisted otus
 otu_pairs = paste(selOTUs, "<==>", sep='')
 
