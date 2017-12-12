@@ -136,6 +136,8 @@ writeDICT_to_file(seed_taxa_dict, "seed-taxa-dict.txt")
 writeDICT_to_file(seed_utaxa_dict, "seed-uniq-taxa-dict.txt")
 
 #print seed_utaxa_dict.keys()
+writeLIST_to_file(seed_utaxa_dict.keys(), "seed-dict-keys.txt")
+
 
 # count which taxa contains how many seeds:
 
@@ -153,7 +155,7 @@ def sort_taxa_occurence(somelistoflists, outfile):
 
     #https://stackoverflow.com/questions/3820312/python-write-a-list-of-tuples-to-a-file
     with open(outfile, 'w') as fp:
-        fp.write('\n'.join('%s %s' % x for x in sorted_x))
+        fp.write('\n'.join('%s\t%s' % x for x in sorted_x))
 
 
 
