@@ -480,21 +480,12 @@ calc_stats = function(inNet, correlThreshold=0){
 # for a given combinedPvalue and combinedfdr threshold, generate network
 #----------------------------------------------------------------------
 generateNetwork = function(){
-       #generate network After Filter
+    #generate network After Filter
 
-       out = ''
-       if(noPUC){
-	    # at this point you only have pairs with consistent correlations 
-	    out = data
-	    #out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns  # decide whether to use this combinedCoefficient.correlationDirection
-        } else {
-	    # find PUC expected
-	    out = data[data[,"PUC"]==1 ,]
-	    out = out[!is.na(out$"PUC"),] # remove the rows with 'NA' in PUC columns
-        }
+	out = data
 
 	out = as.matrix(out)
-        #df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
+    #df = apply(df[,c("combinedFDR", "PUC")],2,function(x){as.numeric(as.vector(x))})
 
 	
 	out = out[(as.numeric(out[,"combinedPvalue"])<combinedPvalueCutoff)==1,]
@@ -514,15 +505,28 @@ generateNetwork = function(){
 	outNetwork = out[passIndevidualPvalue, , drop=FALSE]
 	#print(outNetwork)
         
-        #outNetwork$names<-rownames(outNetwork)
-        #splt = str_split_fixed(outNetwork$names, "<==>", 2)
-        #outNetwork = cbind(outNetwork, splt)
+	#outNetwork$names<-rownames(outNetwork)
+	#splt = str_split_fixed(outNetwork$names, "<==>", 2)
+	#outNetwork = cbind(outNetwork, splt)
+	
+	write.csv(outNetwork,paste0(networkFile,"-prePUCcut.csv"), quote=FALSE)
+	#print(head(outNetwork))
+	
+	 if(noPUC){
+	    # do nothing
+     } else {
+	    # find PUC expected
+	    outNetwork = outNetwork[as.numeric(outNetwork[,"PUC"])==1 ,]
+		outNetwork = outNetwork[!is.na(as.numeric(outNetwork[,"PUC"])),] # remove the rows with 'NA' in PUC columns
+     }
+
+	#print(head(outNetwork))
         
 	write.csv (outNetwork,networkFile, quote=FALSE)
 
-        calc_stats(outNetwork)
+    calc_stats(outNetwork)
 
-        print("Done!")
+    print("Done!")
 }
 
 
