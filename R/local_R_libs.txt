@@ -134,3 +134,10 @@ biocLite("DESeq2")
 library(DESeq2)
 
 install.packages("calibrate")
+
+install.packages("ProNet")
+
+install.packages("optparse")
+install.packages('optparse',lib='/raid1/home/pharmacy/rodrrich/R') # doing this way installs so qiime can see it
+
+install.packages("metagenomeSeq") # package ‘metagenomeSeq’ is not available (for R version 3.3.2)

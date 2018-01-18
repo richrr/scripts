@@ -258,11 +258,13 @@ sub processFastq{
 	if($lexogen){
 		#@gzFilesR1 = `ls $inputFolder | grep ".fastq" | grep "trimmed" | grep "clean" | grep "lane" | grep "_R1_" `; 
 		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `;  # this is default. uncomment this
-		# below for melina's data
-		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "_R1_" `; 
+		# below for melina's or our liver and ileum data
+		#@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "_R1_" `; 
 	}
 	else{
-		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; 
+		@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R1_" `; # this is default.
+		# uncomment this below for gse81117 data
+		#@gzFilesR1 = `ls $inputFolder | grep "fastq.gz" `; 
 		if($paired)	{
 			@gzFilesR2 = `ls $inputFolder | grep "fastq.gz" | grep "lane" | grep "_R2_" `;
 		}
@@ -294,6 +296,8 @@ sub processFastq{
 			}
 						
 			$fileName =~s/_001.fastq.gz//g;
+			# uncomment this below for gse81117 data
+			#$fileName =~s/.fastq.gz//g; 
 			
 			if($lexogen){
 				# do the uncompressing and suggested cleaning

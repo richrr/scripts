@@ -531,6 +531,11 @@ checkConsistency_across_expts_parallel = function(s_df, condition, total_numb_in
 #------------------------------------------------------------------
 # Sequential: check which measurement ("gene") or pairs have the same trend across experiments
 # identify the rows where values are >/< than threshold
+# note that here we first append only pos (or upreg) then neg (or dwnreg).
+# in parallel version of this we do not keep track of directions
+# and directly append when we calcuate consistency, so the row orders
+# in the sequential and parallel verions of this part can be different
+# but the final (sorted) results will match
 #------------------------------------------------------------------
 checkConsistency_across_expts = function(s_df, condition, total_numb_input_files, correlThreshold , pvalThreshold, foldchThreshold){
 

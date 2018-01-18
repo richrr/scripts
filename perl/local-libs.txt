@@ -1,0 +1,19 @@
+
+nov 8 2017
+http://search.cpan.org/~shlomif/String-Random-0.29/lib/String/Random.pm
+
+http://alumni.soe.ucsc.edu/~you/notes/perl-module-install.html
+
+
+cd /nfs3/PHARM/Morgun_Lab/richrr/locallibs/perl
+tar -zxvf String-Random-0.29.tar.gz
+
+cd String-Random-0.29/
+
+perl Build.PL
+    ./Build
+    ./Build test
+    ./Build install
+
+append the path to perl5lib in ~/.cshrc. then relogin
+

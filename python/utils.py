@@ -180,6 +180,9 @@ def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_col
             newlist.append(l.strip())
             continue
         array = l.strip().split(delim)
+        
+        # remove double quotes
+        array[0] = array[0].replace('"', '')
         # insert newid
         if array[0] in d2 and insert:
             array.insert(insert_column , d2[array[0]])
@@ -203,6 +206,92 @@ def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_col
         #newlist.append(joiner.join(array))
         newlist.append(delim.join(array))
     return newlist
+
+
+
+######################################################################
+# this allows mapping to new ids for multiple columns, instead of only first (0-index col)
+# useful for networks where you want to map two node columns to new ids
+# MAP IDENTIFIERS: TWO FILES into LIST, 
+# ARG: TWO FILES (all lines from the first file (data file) are printed, the second file (annotation file) is used for making dict)
+# OPTIONAL ARG: columns to be mapped to new ids given as a comma separated string
+#				DELIMITER FOR SPLITTING, JOINER string , key and value columns, insert newid or replace oldid with newid, 
+#               0-indexed column to where value is to be inserted, keep lines with missing value from file 2
+'''
+Map the identifiers in various columns of a tab-delimited file to a different
+namespace, using a supplied mapper. Columns are 0-indexed.
+comments begin with '#'
+
+This script takes a single tab-delimited file with one or more columns. This is
+the file to be mapped:
+--- This is matrix.txt ---
+  id1_n1   val1,1   val1,2
+  id2_n1   val2,1   val2,2
+  id3_n1   val3,1   val3,2
+
+The script also takes a namespace mapper, which is a multi-column,
+tab-delimited file. Each row corresponds to a single entity, and each column
+contains IDs for that entity from a different namespace. For example:
+--- This is mapper.txt ---
+  #namespace1  namespace2  namespace3
+  id1_n1       id1_n2      id1_n3
+  id2_n1       id2_n2      id2_n3
+  id3_n1       id3_n2      id3_n3
+
+Lastly, the script requires two integers that specify the column to be used as
+the "from" namespace (key) and the column to be used as the "to" namespace (value).
+
+Example: map_identifiers_col (matrix.txt, mapper.txt, '0,1' ,'\t', '\t', 0, 2)
+
+  # comments begin with '#'
+  id1_n3   val1,1   val1,2
+  id2_n3   val2,1   val2,2
+  id3_n3   val3,1   val3,2 
+'''
+
+
+######################################################################
+def map_identifiers_col(file1, file2, col_to_change = '0', delim='\t', joiner='\t', key_column=0, val_column=1, insert=False, insert_column=1, skipmissing=False, missingidasNA=True):
+    f1 = read_file(file1) # treated as a list
+
+    f2 = read_file(file2) # used to make a dictionary
+    d2 = list_to_dict(f2, delim, joiner, "current", key_column, val_column)
+
+    newlist = list()
+
+    for l in f1: 
+        if '#' in l:
+            newlist.append(l.strip())
+            continue
+        array = l.strip().split(delim)
+
+        for indx in [int(i) for i in col_to_change.split(',')]:        
+            # remove double quotes
+            array[indx] = array[indx].replace('"', '')
+            # insert newid
+            if array[indx] in d2 and insert:
+                array.insert(insert_column , d2[array[indx]])
+            # replace id with newid 
+            elif array[indx] in d2 and not insert:
+                array[indx] = d2[array[indx]]
+            # skip line if missing value
+            elif array[indx] not in d2 and skipmissing:
+                continue
+            # the following if are executed only if skipmissing is False
+            # insert missing value
+            elif array[indx] not in d2 and insert:
+                array.insert(insert_column , 'NA')
+            # replace id with missing value
+            elif array[indx] not in d2 and not insert:
+                if missingidasNA:
+                    array[indx] = 'NA'
+                else:
+                    pass # keeps array[indx] as it is
+        
+        #newlist.append(joiner.join(array))
+        newlist.append(delim.join(array))
+    return newlist
+
 
 
 ######################################################################

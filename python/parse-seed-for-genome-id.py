@@ -8,6 +8,8 @@ from collections import Counter
 import operator
 
 
+### create a dict of original to comma replaced seeds entries. Would make life much easier.
+
 
 #cd ~/Morgun_Lab/richrr/Type2_Diabetes/DNAShotgunMetagenome/analysis/t2-corr/merged/seed_seed_sp_otu_seed_corr_0.6/p1_cp0.05_cfdr0.1/per_analysis/
 #python /nfs3/PHARM/Morgun_Lab/richrr/scripts/python/parse-seed-for-genome-id.py ~/Morgun_Lab/richrr/Type2_Diabetes/DNAShotgunMetagenome/analysis/t2-corr/merged/otu_seed/p1_cp0.05_cfdr0.1/per_analysis/all_samples/ip_0.3_cp_0.1_comb-fdr_1/otu-seed-corr-0.6thresh.csv ~/Morgun_Lab/richrr/db/SEED/seed_03_25_2013.fasta
@@ -36,6 +38,7 @@ for line in seed:
     seed_entries.append(conts[-2])
     #sys.exit(0)
 
+#writeLIST_to_file(seed_entries, "seed-entries-unsanitized.txt")
 writeLIST_to_file(seed_entries, "seed-entries.txt")
 '''
 
@@ -138,6 +141,26 @@ writeDICT_to_file(seed_utaxa_dict, "seed-uniq-taxa-dict.txt")
 #print seed_utaxa_dict.keys()
 writeLIST_to_file(seed_utaxa_dict.keys(), "seed-dict-keys.txt")
 
+
+'''
+# see which seeds are absent in the dict keys. these need to be sanitized.
+intersct = list(set(seed_entries) & set(seed_utaxa_dict.keys()))
+if(len(intersct) == len(seed_entries):
+    pass
+else:
+    diff = [val for val in seed_entries if val not in seed_utaxa_dict.keys()]
+    tmp = [v for v in intersct]
+    while(len(diff) > 0):
+        print(diff)
+        for d in diff:
+            #replace . by , except when in ()
+            regex = r'[^\(\)]+(?=\])'
+            re.sub(regex,'456',String)
+            tmp.append(d)
+        diff = [val for val in seed_entries if val not in tmp]
+
+sys.exit(0)
+'''
 
 # count which taxa contains how many seeds:
 

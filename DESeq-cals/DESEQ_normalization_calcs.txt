@@ -1,0 +1,61 @@
+> set.seed(31415926)
+>
+> # Create some simulated count data.
+> # All samples have the same underlying count, but with varying numbers
+> # total reads per sample. Poisson distribution used for simplicity,
+> # but note that real RNA-Seq data has higher variance than poisson.
+>
+> true_size_factors = c(1, 1.2, 1.5, 2.0)
+> true_mean_counts = c(10, 20, 100, 500, 1000, 5000)
+>
+> e = expand.grid(true_size_factors, true_mean_counts)
+> lambdas = e$Var1 * e$Var2
+>
+> raw_data = matrix(rpois(n=nrow(e), lambda=lambdas), ncol=4, byrow=TRUE)
+> rownames(raw_data) = paste("gene", 1:nrow(raw_data), sep="_")
+> colnames(raw_data) = paste("sample", 1:ncol(raw_data), sep="_")
+>
+> raw_data
+       sample_1 sample_2 sample_3 sample_4
+gene_1       15        9       11       18
+gene_2       19       21       21       40
+gene_3      106      114      153      207
+gene_4      569      565      756      992
+gene_5     1029     1260     1559     1968
+gene_6     5049     5897     7537    10029
+> estimateSizeFactorsForMatrix = function (counts, locfunc = median)
++ {
++     loggeomeans <- rowMeans(log(counts))
++     apply(counts, 2, function(cnts) exp(locfunc((log(cnts) -
++         loggeomeans)[is.finite(loggeomeans)])))
++ }
+> sizes = estimateSizeFactorsForMatrix(raw_data)
+> sizes
+ sample_1  sample_2  sample_3  sample_4
+0.7735959 0.8353574 1.0863588 1.4357334
+> raw_data / do.call(rbind, rep(list(sizes), 6))
+         sample_1   sample_2   sample_3   sample_4
+gene_1   19.38997   10.77383   10.12557   12.53715
+gene_2   24.56063   25.13894   19.33063   27.86033
+gene_3  137.02245  136.46853  140.83745  144.17719
+gene_4  735.52615  676.35717  695.90269  690.93608
+gene_5 1330.15186 1508.33635 1435.06918 1370.72804
+gene_6 6526.66350 7059.25354 6937.85528 6985.28022
+>
+
+
+>library(DESeq2)
+> cds = DESeqDataSetFromMatrix(as.matrix(raw_data), colData=data.frame(name=c("trt", "trt", "cont", "cont")), design=~1)
+> cds = DESeq2::estimateSizeFactors(cds)   # making sure it uses the function from deseq2 and not the one I got above which is also from deseq btw.
+> cts = counts(cds, normalized=TRUE)
+> cts
+         sample_1   sample_2   sample_3   sample_4
+gene_1   19.38997   10.77383   10.12557   12.53715
+gene_2   24.56063   25.13894   19.33063   27.86033
+gene_3  137.02245  136.46853  140.83745  144.17719
+gene_4  735.52615  676.35717  695.90269  690.93608
+gene_5 1330.15186 1508.33635 1435.06918 1370.72804
+gene_6 6526.66350 7059.25354 6937.85528 6985.28022
+>
+
+

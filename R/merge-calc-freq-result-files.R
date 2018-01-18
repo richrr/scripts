@@ -69,7 +69,8 @@ combinedPvalueCutoff = argv$combPvalCutoff
 combinedFDRCutoff = argv$combFDRCutoff
 
 # create if outdir doesn't exist:
-res_directory = paste(c("./p", pvalThreshold, "/freq/"), collapse='')
+res_directory = paste(c("./p", pvalThreshold, "_cp", combinedPvalueCutoff, "_cfdr", combinedFDRCutoff, "/freq/"), collapse='')
+
 dir.create(res_directory, recursive = TRUE)
 outputFile = paste(res_directory, outputFile, sep='')
 
