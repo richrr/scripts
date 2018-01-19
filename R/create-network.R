@@ -418,7 +418,7 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 #----------------------------------------------------------------------
 # calc stats of the generated network
 #----------------------------------------------------------------------
-calc_stats = function(inNet, correlThreshold=0){
+calc_stats = function(inNet, PUC_Prop, correlThreshold=0){
 
         out = file(paste(networkFile,'-stats-log.txt',sep='') ,'a')
         
@@ -455,6 +455,24 @@ calc_stats = function(inNet, correlThreshold=0){
 
         nodes = union(setpartner1, setpartner2)
         #print(paste(c("Number of unique nodes: ", length(nodes)), collapse=""))
+        
+        df_a = inNet[,c("partner1InFold","partner1_FoldChange")]
+        colnames(df_a) = c("partnerInFold","partner_FoldChange")
+        rownames(df_a) <- NULL
+        
+        df_b = inNet[,c("partner2InFold","partner2_FoldChange")]
+        colnames(df_b) = c("partnerInFold","partner_FoldChange")
+        rownames(df_b) <- NULL
+        
+        df_ab = rbind(df_a, df_b)
+        uniq_df_ab = unique(df_ab)
+        print(dim(uniq_df_ab))
+        
+        upreg = length(uniq_df_ab[as.numeric(uniq_df_ab[,"partner_FoldChange"]) > 1, "partner_FoldChange"])
+        dnreg = length(uniq_df_ab[as.numeric(uniq_df_ab[,"partner_FoldChange"]) < 1, "partner_FoldChange"])
+        
+        potential_pos_corr_edges = choose(upreg, 2) + choose(dnreg, 2)
+        potential_neg_corr_edges = upreg * dnreg
 
         edgesDistinctNodes = inNet[which(inNet[,"partner1"]!=inNet[,"partner2"]), ] 
         #print(paste(c("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes)), collapse=""))
@@ -467,10 +485,21 @@ calc_stats = function(inNet, correlThreshold=0){
         write.csv(paste(c("Pos corr edges:" , toString(res_pos)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Neg corr edges:" , toString(res_neg)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Ratio of Pos to Neg corr edges:" , toString(res_pos/res_neg)), collapse='') , file=out, row.names=FALSE)
+        
+        write.csv(paste(c("Potential Pos corr edges:" , toString(potential_pos_corr_edges)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Potential Neg corr edges:" , toString(potential_neg_corr_edges)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Potential Ratio of Pos to Neg corr edges:" , toString(potential_pos_corr_edges/potential_neg_corr_edges)), collapse='') , file=out, row.names=FALSE)
+        
+        
         write.csv(paste(c("Total number of edges: ", nrow(inNet)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Number of unique nodes: ", length(nodes)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Number of upreg nodes: ", upreg), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("Number of dwnreg nodes: ", dnreg), collapse='') , file=out, row.names=FALSE)
+        
         write.csv(paste(c("Ratio of edges to nodes: ", nrow(inNet)/length(nodes)), collapse='') , file=out, row.names=FALSE)
         write.csv(paste(c("Number of unique edges (without self loops): ", nrow(edgesDistinctNodes)), collapse='') , file=out, row.names=FALSE)
+        write.csv(paste(c("PUC with ip,fisher,fdr cuts: ", PUC_Prop), collapse='') , file=out, row.names=FALSE)
+        
         close(out)
 
 }
@@ -512,6 +541,10 @@ generateNetwork = function(){
 	write.csv(outNetwork,paste0(networkFile,"-prePUCcut.csv"), quote=FALSE)
 	#print(head(outNetwork))
 	
+	DEN = length(outNetwork[,"PUC"])
+    NUM = DEN - length(outNetwork[as.numeric(outNetwork[,"PUC"])==1, "PUC"]) 
+    PUC_Prop = as.numeric(NUM*100/DEN) 
+	
 	 if(noPUC){
 	    # do nothing
      } else {
@@ -524,7 +557,7 @@ generateNetwork = function(){
         
 	write.csv (outNetwork,networkFile, quote=FALSE)
 
-    calc_stats(outNetwork)
+    calc_stats(outNetwork, PUC_Prop)
 
     print("Done!")
 }
