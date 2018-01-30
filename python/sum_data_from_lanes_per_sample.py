@@ -25,7 +25,10 @@ def main(args):
     parser.add_argument('-o', '--outfile', default="summed-values.txt")  # output filename
     parser.add_argument('-d', '--delimiter', default='\t')  # delimiter for file
     parser.add_argument('-l', '--lanedelimit', default='_L00')  # delimiter for identifying lanes
-    parser.add_argument('-r', '--rowid', default=0)  # row id
+    parser.add_argument('-r', '--rowid', default=0)  # 0-based index of column to be used for row id
+    parser.add_argument('-s', '--skiprowsafterheader', default=0)  # skip the top x rows using index after header 
+                                                        # to skip three rows following header, give -s 3
+                                                        # so in htseq results it could be the top 5 rows after header with __, give -s 5
     parser.add_argument('-b', '--buffr')  # the buffer string is used to split the sample names and used
                                            #  during arranging samples order in output file
                                            # for samples named 11rnaseq1, 11rnaseq2, 12rnaseq1, ...the -b is rnaseq
@@ -42,7 +45,10 @@ def main(args):
     outfile = args.outfile
     delim = args.delimiter
     lanedelimit = args.lanedelimit
-    
+    skiprows = int(args.skiprowsafterheader)  # here skiprows is an int
+    if skiprows > 0: # here skiprows becomes a index based list
+        skiprows = range(1, 1+skiprows) # range(1,1+3) == [1, 2, 3], since with read_table the file is read with header as 0, so skip the next 3 lines, is index 1,2,3
+   
     # get the header line from the big file
     header_line = ''
     with open(infile, 'r') as f:
@@ -65,11 +71,19 @@ def main(args):
     #print sample_lanes_dict
    
     # sort the samples using the prefix and suffix of the buffr string
-    headers = sort_headers(sample_lanes_dict.keys(), buffr)
+    headers = sample_lanes_dict.keys()
+    if buffr != 'ignore':
+        headers = sort_headers(sample_lanes_dict.keys(), buffr)
 
     # read the full file as a data frame
-    df = pd.read_table(infile, index_col = args.rowid)
+    df = pd.read_table(infile, index_col = args.rowid, skiprows=skiprows, sep=delim)
     print df.head()
+
+    ### do not use this code below. use skiprows during read_table
+    # after reading the file, the header is not counted as a row. start skipping from row 1 (index 0)
+    #if(skiprows>0):i
+    #    df = df.drop(df.index[[0,1,2,3,4]])
+    ###
 
     # create an empty df with the required row and column names
     df_ = pd.DataFrame(index=list(df.index), columns=headers)

@@ -1,0 +1,107 @@
+r_12 is correlation in group A, r_34 is correlation in group B:
+
+r_12 = 0.6
+r_34 = -0.1539
+N_a = 5
+N_b = 5
+
+
+
+library(psych)
+
+#      (i) the methods from the DAPfinder and Reverse engg paper
+# Convert correlations to z-scores 
+z1 = fisherz(r_12)
+z2 = fisherz(r_34)
+# Calculate vector of t-tests to compare correlations between classes
+fisher = (z1 - z2) / sqrt((1/(N_a - 3)) + (1/(N_b - 3))) 
+# Calculate raw p-values
+pv.dif.cor = 2*pt(-abs(fisher),Inf)
+pv.dif.cor
+
+
+#      (ii) compare correlations using r.test
+r.test(n = N_a, r12 = r_12, r34 = r_34, n2 = N_b)$p
+
+
+##################
+
+
+r_12 = -0.44721
+r_34 = -1
+N_a = 5
+N_b = 5
+
+
+
+library(psych)
+
+#      (i) the methods from the DAPfinder and Reverse engg paper
+# Convert correlations to z-scores 
+z1 = fisherz(r_12)
+z2 = fisherz(r_34)
+# Calculate vector of t-tests to compare correlations between classes
+fisher = (z1 - z2) / sqrt((1/(N_a - 3)) + (1/(N_b - 3))) 
+# Calculate raw p-values
+pv.dif.cor = 2*pt(-abs(fisher),Inf)
+pv.dif.cor
+
+
+#      (ii) compare correlations using r.test
+r.test(n = N_a, r12 = r_12, r34 = r_34, n2 = N_b)$p
+
+##################
+
+r_12 = 1
+r_34 = 0.6
+N_a = 5
+N_b = 5
+
+
+
+library(psych)
+
+#      (i) the methods from the DAPfinder and Reverse engg paper
+# Convert correlations to z-scores 
+z1 = fisherz(r_12)
+z2 = fisherz(r_34)
+# Calculate vector of t-tests to compare correlations between classes
+fisher = (z1 - z2) / sqrt((1/(N_a - 3)) + (1/(N_b - 3))) 
+# Calculate raw p-values
+pv.dif.cor = 2*pt(-abs(fisher),Inf)
+pv.dif.cor
+
+
+#      (ii) compare correlations using r.test
+r.test(n = N_a, r12 = r_12, r34 = r_34, n2 = N_b)$p
+
+
+##################
+
+
+r_12 = 0.1
+r_34 = -0.2
+N_a = 5
+N_b = 5
+
+
+
+library(psych)
+
+#      (i) the methods from the DAPfinder and Reverse engg paper
+# Convert correlations to z-scores 
+z1 = fisherz(r_12)
+z2 = fisherz(r_34)
+# Calculate vector of t-tests to compare correlations between classes
+fisher = (z1 - z2) / sqrt((1/(N_a - 3)) + (1/(N_b - 3))) 
+# Calculate raw p-values
+pv.dif.cor = 2*pt(-abs(fisher),Inf)
+pv.dif.cor
+
+
+#      (ii) compare correlations using r.test
+r.test(n = N_a, r12 = r_12, r34 = r_34, n2 = N_b)$p
+
+
+##################
+

@@ -39,7 +39,7 @@ argv <- parse_args(p)
 
 if(length(argv$file) < 1)
 {
-  print("At least 2 files are required. Give --file file ... in cmd")
+  print("At least 1 file is required. Give --file file ... in cmd")
   quit()
 }
 
@@ -466,7 +466,8 @@ calc_stats = function(inNet, PUC_Prop, correlThreshold=0){
         
         df_ab = rbind(df_a, df_b)
         uniq_df_ab = unique(df_ab)
-        print(dim(uniq_df_ab))
+        print("Unique nodes (partner, fc) df:")
+	print(dim(uniq_df_ab))
         
         upreg = length(uniq_df_ab[as.numeric(uniq_df_ab[,"partner_FoldChange"]) > 1, "partner_FoldChange"])
         dnreg = length(uniq_df_ab[as.numeric(uniq_df_ab[,"partner_FoldChange"]) < 1, "partner_FoldChange"])
@@ -542,9 +543,11 @@ generateNetwork = function(){
 	#print(head(outNetwork))
 	
 	DEN = length(outNetwork[,"PUC"])
-    NUM = DEN - length(outNetwork[as.numeric(outNetwork[,"PUC"])==1, "PUC"]) 
-    PUC_Prop = as.numeric(NUM*100/DEN) 
-	
+	NUM = DEN - length(outNetwork[as.numeric(outNetwork[,"PUC"])==1, "PUC"]) 
+	PUC_Prop = as.numeric(NUM*100/DEN) 
+	print("PUC after the ip, fisher, fd cuts:")
+	print(PUC_Prop)
+
 	 if(noPUC){
 	    # do nothing
      } else {
