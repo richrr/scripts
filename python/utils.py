@@ -217,6 +217,7 @@ def map_identifiers(file1, file2, delim='\t', joiner='\t', key_column=0, val_col
 # OPTIONAL ARG: columns to be mapped to new ids given as a comma separated string
 #				DELIMITER FOR SPLITTING, JOINER string , key and value columns, insert newid or replace oldid with newid, 
 #               0-indexed column to where value is to be inserted, keep lines with missing value from file 2
+#				whether to use NA if no id found, any suffix to be replaced in the id before searching
 '''
 Map the identifiers in various columns of a tab-delimited file to a different
 namespace, using a supplied mapper. Columns are 0-indexed.
@@ -251,7 +252,7 @@ Example: map_identifiers_col (matrix.txt, mapper.txt, '0,1' ,'\t', '\t', 0, 2)
 
 
 ######################################################################
-def map_identifiers_col(file1, file2, col_to_change = '0', delim='\t', joiner='\t', key_column=0, val_column=1, insert=False, insert_column=1, skipmissing=False, missingidasNA=True):
+def map_identifiers_col(file1, file2, col_to_change = '0', delim='\t', joiner='\t', key_column=0, val_column=1, insert=False, insert_column=1, skipmissing=False, missingidasNA=True, replace_suffix = ''):
     f1 = read_file(file1) # treated as a list
 
     f2 = read_file(file2) # used to make a dictionary
@@ -268,6 +269,9 @@ def map_identifiers_col(file1, file2, col_to_change = '0', delim='\t', joiner='\
         for indx in [int(i) for i in col_to_change.split(',')]:        
             # remove double quotes
             array[indx] = array[indx].replace('"', '')
+            # the replace suffix could be '_I' or '_L' added to keep track of different tissues for the same gene.
+            if replace_suffix != '':
+                array[indx] = array[indx].replace(replace_suffix, '')
             # insert newid
             if array[indx] in d2 and insert:
                 array.insert(insert_column , d2[array[indx]])

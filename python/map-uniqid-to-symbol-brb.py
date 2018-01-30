@@ -23,6 +23,7 @@ ofile = sys.argv[5]
 delim = ","
 joiner = ","
 col_to_change = '0'
+replace_suffix = ''
 
 # first check if the new map id col behaves correctly for 0 index change, similar to its predecessor function
 # then add more columns as arguments to this code and see if it works
@@ -62,13 +63,20 @@ if(len(sys.argv) > 6): # since the sys.argv[0] is the script name.
     if(sys.argv[6] == "network"):
         file1 = sanitize_net_file(file1)
 
+
 if(len(sys.argv) > 7): # since the sys.argv[0] is the script name.
     col_to_change = sys.argv[7]
+
+
+if(len(sys.argv) > 8):
+    replace_suffix = sys.argv[8]
+
+
 
 # only maps the 0-index
 #ret_list = map_identifiers(file1, file2, delim , joiner, colf1, colf2) 
 
 # can map more than one column
-ret_list = map_identifiers_col(file1, file2, col_to_change, delim , joiner, colf1, colf2) 
+ret_list = map_identifiers_col(file1, file2, col_to_change, delim , joiner, colf1, colf2, missingidasNA=False, replace_suffix = replace_suffix) 
 writeLIST_to_file(ret_list, ofile)
 
