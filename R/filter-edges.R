@@ -1,8 +1,16 @@
 library(argparser)
 library(stringr)
 
-# usage: cd Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/merged/pool/il_li_ph_hfhsncd/p1_cp1_cfdr1/per_analysis
+# usage: 
+#cd ~/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/merged/pool/il_li_ph_hfhsncd/p1_cp1_cfdr1/per_analysis
 # Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/filter-edges.R --file Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv --keeppartners nodes_to_keep.txt --splitfile _I _L
+
+#cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/pool/brb_deg_lipid_pheno_hfhsncd/p1_cp1_cfdr1/per_analysis/
+#Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/filter-edges.R --file Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv --keeppartner1 ~/Morgun_Lab/richrr/Type2_Diabetes/phenotypes/liverlipids/brb-2expt-diet-lipid-fdr15.txt --output filtered_edges.csv --nosplit
+
+#cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/pool/brb_deg_lipid_lipid_hfhsncd/p1_cp1_cfdr1/per_analysis/
+#Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/filter-edges.R --file Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv --keeppartners ~/Morgun_Lab/richrr/Type2_Diabetes/phenotypes/liverlipids/brb-2expt-diet-lipid-fdr15-union-1gf-diet-lipid-fdr15.txt --output diet-spf-gf-degs-Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv --nosplit
+
 
 
 #==================================================================================================================
@@ -20,7 +28,7 @@ p <- add_argument(p, "--keeppartner2", help="list of nodes allowed in partner2",
 p <- add_argument(p, "--splitfile", help="string in partner1 on which the allowed pairs (say from --file) will be split into multiple files", nargs=Inf) # this specific case can be used if gene_I-pheno and gene_L-pheno edges were present in the same file
 # and now you want to create separate networks of only gene_I-pheno and gene_L-pheno edges.
 # so give --splitfile _I _L
-
+p <- add_argument(p, "--nosplit", help="no need to split file.", flag=TRUE)  # default allows split
 
 p <- add_argument(p, "--output", help="output file", default="./filt_netw.csv")
 
@@ -105,7 +113,15 @@ if(length(good_nodes2) > 0){
 
 good_pairs = paste(pairs[,"p1"], pairs[,"p2"], sep='<==>')
 print(length(good_pairs))
-write.csv(good_pairs, outputFile, quote=F, row.names = F)
+#head(good_pairs)
+#write.csv(good_pairs, outputFile, quote=F, row.names = F)
+write(good_pairs, outputFile, sep="\n")
+
+
+if(argv$nosplit){
+    print("Exiting since split not requested")
+    q()
+}
 
 if(length(argv$splitfile) > 0){
     

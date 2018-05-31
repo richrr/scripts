@@ -399,12 +399,15 @@ forPUC = function(FoldChangeMetabolic,noPUC){
     plt = calc_PUC_at_thresholds(sorted_result) # walk along fdr and calc puc at diff fdr
     write.csv(plt, paste(PUCoutfile, "all-edges.csv", sep='.'), row.names=FALSE)
 
+    # if there are only pos or neg correlations, use the if condition to avoid error
+    if(nrow(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == 1),])>0){
     pos_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == 1),], "pos") # walk along fdr and calc puc at diff fdr
     write.csv(pos_plt, paste(PUCoutfile, "pos-edges.csv", sep='.'), row.names=FALSE)
-
+    }
+    if(nrow(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == -1),])>0){
     neg_plt = calc_PUC_at_thresholds(sorted_result[which(sorted_result$combinedCoefficient.correlationDirection == -1),], "neg") # walk along fdr and calc puc at diff fdr
     write.csv(neg_plt, paste(PUCoutfile, "neg-edges.csv", sep='.'), row.names=FALSE)
-
+    }
     data = sorted_result
     }
 
