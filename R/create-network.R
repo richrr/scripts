@@ -32,6 +32,10 @@ p <- add_argument(p, "--analysisfc", help="Partial header (Analysis number) to b
 
 p <- add_argument(p, "--analysiscorr", help="Partial header (Analysis number) to be used for selecting the columns for combined pval and median correlations", default="ALL") #e.g. "Analys 1 " ; avoids cutting the required columns as input for the script   # make sure there is space after the number to avoid selecting analysis 11, etc.
 
+p <- add_argument(p, "--numbDataFromFCfile", help="use fold change file to figure out the number of datasets", flag=TRUE)  # default is figure out from the pvalue cols of merged col file.
+						# ue this argument in very very rare cases, where the number of datasets for the corr and comparisons are different.
+						# e.g. the corr is calculated by pooling 2 expts of say 5 samples into 1 dataset of 10 samples, but the comp file is for 2 datasets (expts) 
+
 
 argv <- parse_args(p)
 #print (p)
@@ -61,6 +65,7 @@ logbase = argv$logbase
 foldchVar = 'FolChMedian'
 if(argv$foldchMean){foldchVar = "FoldChange"}
 outputFile = paste(outputFile , foldchVar, '_', sep='')
+
 
 noPUC = argv$noPUC
 analysisfc = argv$analysisfc
@@ -97,6 +102,9 @@ remove_redundant_columns = function(this_df, total_numb_input_files){
                     print("All are NOT equal")
                     quit()
              }
+          } else{ # the rare case where you only have one dataset
+          	rownames(this_df) <- this_df[, 1]
+          	this_df <- this_df[, -1] 
           }
 
       return(this_df)
@@ -158,7 +166,7 @@ calc_PUC_at_thresholds = function(df, str='all'){
    subdata = data[data[,1] %in% consist_elems,] 
    total_numb_input_files = length(grep("pairName", colnames(subdata)))
    subdata = remove_redundant_columns(subdata, total_numb_input_files)
-   
+   #print("Removed redundant id cols from corr file")
 
    outForPUC = subdata
    
@@ -204,8 +212,8 @@ calc_PUC_at_thresholds = function(df, str='all'){
    combinedFDR = p.adjust(result[,"combinedPvalue"],method="fdr")
    result = cbind(result,combinedFDR)
    #print(head(result))
-   write.csv (result,paste( outputFile, search_group_santized, "tmp-out.csv", sep='-'))
-   
+   write.csv (result,paste( outputFile, search_group_santized, "tmp-out.csv", sep='-'))  
+ 
  
    # calculate median FoldChange
    FoldChangeMetabolic =  ''
@@ -213,7 +221,15 @@ calc_PUC_at_thresholds = function(df, str='all'){
            # no need to loop up the fold change
         } else {
    FoldChangeMetabolic =  read.csv(FoldChangeFile,header = TRUE,check.names=FALSE)
+   
+   if(argv$numbDataFromFCfile){
+   		total_numb_input_files = length(grep("geneName", colnames(FoldChangeMetabolic)))
+   }
+   
+
    FoldChangeMetabolic = remove_redundant_columns(FoldChangeMetabolic, total_numb_input_files)
+   #print("Removed redundant id cols from fc file")
+   
    FoldChangeColnames = colnames(FoldChangeMetabolic)[grep(foldchVar,colnames(FoldChangeMetabolic))]
    # if an Analysis number is specified then select only that analysis number
    if(analysisfc != "ALL"){
@@ -253,6 +269,7 @@ unlog <- function(FoldChangeData, base){
 ###########################################################################################################
 
    Data = result
+   head(result)
 #--------------------------------------------------------------------------------
 # calculate PUC
 #--------------------------------------------------------------------------------

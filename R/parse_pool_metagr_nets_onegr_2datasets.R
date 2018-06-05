@@ -3,44 +3,37 @@ args = commandArgs(trailingOnly=TRUE)
 poolnetfile = args[1]
 metagrfile = args[2]
 consis_metagrfile = args[3]
-groupname = args[4]
-exptmwfile = args[5]
-outputFile = args[6]  #"test"
-exptanalys = args[7]
-metagranalys = args[8]
+exptmwfile = args[4]
+outputFile = args[5]  #"test"
+exptanalys = args[6]
+metagranalys = args[7]
 
 # cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/brb_deg_lipid_pheno_hfhs_sp/net2group-spfgf/
 
-
 # poolnetfile:
-poolnetfile = "~/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/brb_deg_lipid_pheno_hfhs_sp/net2group-spfgf/build_netw_FolChMedian_FCAnalys_1_CorrAnalys_1___ileum4wk AbxHFHS_indiv-pval_0.3_comb-pval_0.05_comb-fdr_0.1_.csv"
+#poolnetfile = "~/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/brb_deg_lipid_pheno_hfhs_sp/net2group-spfgf/build_netw_FolChMedian_FCAnalys_1_CorrAnalys_1___ileum4wk AbxHFHS_indiv-pval_0.01_comb-pval_0.01_comb-fdr_0.05_.csv"
 
 
 # edges to be kept from the metagr 2 hfhs file (consistent and dals)
-consis_metagrfile = "/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/per_analysis/diet-spf-gf-degs-Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv"
+#consis_metagrfile = "/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/per_analysis/diet-spf-gf-degs-Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv"
 
 #
-metagrfile="/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/merged_rq_sp_corr_FolChMedian_merged-parallel-output.csv"
-groupname = "ileum4wk AbxHFHS" 
+#metagrfile="/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/merged_rq_sp_corr_FolChMedian_merged-parallel-output.csv"
+ 
 
 # expt file:
-exptmwfile = "/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/expts_mw/mw_comp-output.csv" 
+#exptmwfile = "/nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/expts_mw/mw_comp-output.csv" 
 
 # output file
-outputFile = "test"
+#outputFile = "test"
 
-exptanalys = "Analys 1 "
-metagranalys = "Analys 1 "
+#exptanalys = "Analys 1 "
+#metagranalys = "Analys 1 "
 
 # usage:
-#cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-limf/rel_quantile/merged/pool/brb_deg_f_f_hfhsncd/p1_cp1_cfdr1/per_analysis/net2group
-#Rscript ~/Morgun_Lab/richrr/scripts/R/parse_pool_metagr_nets.R /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-limf/rel_quantile/merged/pool/brb_deg_f_f_hfhsncd/p1_cp1_cfdr1/per_analysis/net2group/build_netw_FolChMedian_FCAnalys_12_CorrAnalys_1___ileum4wk\ Abx_indiv-pval_0.3_comb-pval_0.05_comb-fdr_0.15_.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-limf/rel_quantile/merged/corr/brb_deg_f_f_sp/p1_cp1_cfdr1/merged-Analysis-1-2-consis-corr-dir4-datasets.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-limf/rel_quantile/pool/expts_mw/mw_comp-output.csv f_f_net-ip0.3_cp0.05_fdr0.15
+#cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/brb_deg_lipid_pheno_hfhs_sp/net2group-spfgf
 
-### code tested using ###
-#sftp://files.cgrb.oregonstate.edu:732/raid1/home/pharmacy/rodrrich/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/merged/pool/brb_deg_il_li_hfhsncd/p1_cp1_cfdr1/per_analysis/net2group/pool-li-il-net.xlsx
-
-#Rscript ~/Morgun_Lab/richrr/scripts/R/parse_pool_metagr_nets.R /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/merged/pool/brb_deg_il_li_hfhsncd/p1_cp1_cfdr1/per_analysis/net2group/build_netw_FolChMedian_FCAnalys_12_CorrAnalys_1___ileum4wk\ Abx_indiv-pval_0.3_comb-pval_0.05_comb-fdr_0.15_.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/merged/corr/brb_deg_sp/p1_cp1_cfdr1/merged-Analysis-1-2-consis-corr-dir4-datasets.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-liver-ileum/rel_quantile/pool/expts_mw_brb_degs_ph/mw_comp-output.csv l_i_net-ip0.3_cp0.05_fdr0.15
-###
+#Rscript ~/Morgun_Lab/richrr/scripts/R/parse_pool_metagr_nets_onegr_2datasets.R ~/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/brb_deg_lipid_pheno_hfhs_sp/net2group-spfgf/build_netw_FolChMedian_FCAnalys_1_CorrAnalys_1___ileum4wk\ AbxHFHS_indiv-pval_0.01_comb-pval_0.01_comb-fdr_0.05_.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/merged_rq_sp_corr_FolChMedian_merged-parallel-output.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/merged/corr/brb_deg_lipid_pheno_sp/p1_cp1_cfdr1/per_analysis/diet-spf-gf-degs-Analys1-consis.csv-comb-pval-output.csv.consis_genes.csv /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/t2-lipids/rel_quantile/pool/expts_mw/mw_comp-output.csv lipid_pheno_net-ip0.01_cp0.01_fdr0.05 Analys\ 1\  Analys\ 1\ 
 
 
 if(FALSE){
@@ -316,4 +309,5 @@ calc_stats = function(inNet, correlThreshold=0){
 }
 
 calc_stats(inNet)
+
 
