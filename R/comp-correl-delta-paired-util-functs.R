@@ -19,6 +19,7 @@
 # 3. A vs B paired:  3 non-empty columns, 3rd column paired, 4th column empty [A	B	paired	empty]
 
 # 4. Correl A: 2 non-empty columns, 4th column correlation [A	empty	empty	correlation]
+	# can run in parallel
 
 # 5. Correl delta A: 3 non-empty columns, 2nd column empty, 3rd column delta, 4th column correlation [A	empty	delta	correlation] # needs 2 groups: two comma separated from A 
 
@@ -63,12 +64,13 @@ numericizeVector = function(c){
 CalcCor = function(pair, edata, c, dict, correlMethod){
     idxs = as.vector(dict[[c]])
 
-    n<<- n+1
-    cat (n)
-    cat (":\t")
-    calculating = paste(rev(pair),collapse=" ___ ")
-    cat (calculating)
-    cat ("\n")
+    #commented the following because (a) it was hard to keep track of global n (b) didn't want to add write time
+    #n<<- n+1
+    #cat (n)
+    #cat (":\t")
+    #calculating = paste(rev(pair),collapse=" ___ ")
+    #cat (calculating)
+    #cat ("\n")
 
     c1 = numericizeVector(as.vector(edata[pair[1], idxs]))
     c2 = numericizeVector(as.vector(edata[pair[2], idxs]))
@@ -138,7 +140,7 @@ CalcNDeltaCor = function(pair, edata, c1, c2, dict, correlMethod){
 
 
 #==================================================================================================================
-#		Condition 4
+#		Condition 4 : sequentially calculate correlation
 #==================================================================================================================
 # function : calculate correlation,pvalue,fdr for all gene pairs
 # input:
@@ -180,6 +182,52 @@ calculateCorrelation = function (pairs, expressionData, c, dict, correlMethod, i
     out = cbind(pairName,out)
     out
 }
+
+
+#==================================================================================================================
+#		Condition 4 : parallely calculate correlation
+#==================================================================================================================
+# function : calculate correlation,pvalue,fdr for all gene pairs
+# input:
+#    	  1. pairs: for which to calculate the correlation
+#         2. expression data
+#	  3. the category on which to perform correlations between measurements
+#	  4. the dictionary containing mapping of category and samples which belong to it
+#         5. method for correlation
+# output : 
+#	a table containing pair information, correlation,pvalue,fdr
+
+calculateCorrelation_parallel = function (pairs, expressionData, c, dict, correlMethod, indxg){
+
+    # calculate for each pair
+    out = parApply(cl, pairs, 1, CalcCor, expressionData, c, dict, correlMethod)
+    
+    # add the pair as the column name
+    colnames(out) = paste(as.vector(pairs[,1]),as.vector(pairs[,2]),sep="<==>")
+
+    # the pairs become row names; and the corr coeff and pvalue are the column names
+    out = t(out)
+
+    # method used; # just take the first non-NA element
+    tmp_uniq = unique(out[,1]) 
+    NonNAindex <- which(!is.na(tmp_uniq))[1]
+    method_label = tmp_uniq[NonNAindex]
+
+    # discards the first column of method used
+    out = out[,-1]    
+    # append method used to column labels
+    colnames(out) = c(paste("Analys", indxg, c, method_label,"Coefficient",sep=" "), paste("Analys", indxg, c,method_label,"pvalue",sep=" "))
+
+    # calculate FDR
+    FDR = p.adjust(out[,colnames(out)[grep("pvalue",colnames(out))]],method="fdr")
+    oldColnames = colnames(out)
+    out = cbind(out, FDR)
+    colnames(out) = c(oldColnames,paste("Analys", indxg, c,method_label,"FDR",sep=" "))
+    pairName = rownames(out)
+    out = cbind(pairName,out)
+    out
+}
+
 
 
 #==================================================================================================================

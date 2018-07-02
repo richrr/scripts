@@ -141,3 +141,18 @@ install.packages("optparse")
 install.packages('optparse',lib='/raid1/home/pharmacy/rodrrich/R') # doing this way installs so qiime can see it
 
 install.packages("metagenomeSeq") # package ‘metagenomeSeq’ is not available (for R version 3.3.2)
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biostrings")
+
+install.packages("seqRFLP")
+install_github("mhahsler/rBLAST")
+install.packages("seqinr")
+
+
+
+
+
+
+
+

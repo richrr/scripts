@@ -1,5 +1,8 @@
 ##### to do: 
 ## partial correlation
+## parallelize method:
+##   - analysis is sequential. parallelization currently only implemented for correlation (since those calcs take the longest) calc.
+##   - next, we can implement for parallelizing different analysis or comparisons or other correlations
 
 
 
@@ -23,13 +26,14 @@
 ## for all gene pairs: give group 1 (T1) to first gene, group 2 (T2) to second gene
 
 
-
 library(argparser)
 library(hash)
 library(psych)
 library(gtools)
 library(corpcor)
 library(reshape)
+#library(foreach)
+library(doParallel)
 
 # load the functions from a different file to keep code neater
 source("/nfs3/PHARM/Morgun_Lab/richrr/scripts/R/comp-correl-delta-paired-util-functs.R")
@@ -66,6 +70,11 @@ p <- add_argument(p, "--background", help="the background level usually obtained
 
 p <- add_argument(p, "--stringtorelativize", help="string that indicates the entries to be relativized. Anything is allowed; however, mostly use OTU, SEED, ENSG, ENSMUSG, etc.", default="OTU") # see ensembl prefixs here https://www.uea.ac.uk/documents/429378/432070/Ensemble%2BPresentation.pdf/b5a33c43-1c4c-4677-b588-1a7cac8db622
 
+
+p <- add_argument(p, "--multicore", help="run merging in multicore/multiprocessors", flag=TRUE)
+p <- add_argument(p, "--cores", help="use these many cores", default=8, type="numeric") # do not use more than 8. overhead of parallelization gives little speed up above 8 cores.
+
+
 argv <- parse_args(p)
 #print (p)
 
@@ -98,6 +107,18 @@ AnalysToDoList = read.delim(argv$AnalysToDoList,header = FALSE)
 # the samples in samplIdCol belong to the groups in exptCol
 samplIdCol = argv$mapColumns[1]
 exptCol = argv$mapColumns[2]
+
+
+# allows multiple cores if the multi core flag is true
+allowed_cores = 1
+if(argv$multicore){
+    allowed_cores = argv$cores
+}
+
+cl <<- makeCluster(allowed_cores, type="FORK")
+#registerDoParallel(cl)
+
+
 
 #==================================================================================================================
 # create a group_sampleid dictionary
@@ -366,7 +387,7 @@ calcFC = function(v1 , v2){
 }
 
 
-n=0 # total number of analysis
+n=0 # total number of analysis # this may not be accurate anymore since I stopped these counts for correl calc in parallel mode to avoid wasting time in writing to std out
 
 corrout = c()
 compout = c()
@@ -490,8 +511,17 @@ for(indx in 1:nrow(AnalysToDoList)){
     }else if(c[1] != "" && c[2] == "" && c[3] == "" && c[4] == "correlation"){
         print("4")
         categ= toString(c[1,"V1"])
+        
         # calculate correlations
-        outEachExperiment = calculateCorrelation(pairs, expressionData, categ, dict, argv$correlMethod, indx)
+        tmp_tmp = ''
+	    if(argv$multicore){
+			tmp_tmp = calculateCorrelation_parallel(pairs, expressionData, categ, dict, argv$correlMethod, indx)
+	    } else {
+			tmp_tmp = calculateCorrelation(pairs, expressionData, categ, dict, argv$correlMethod, indx)
+	    }
+	   outEachExperiment = tmp_tmp
+        
+        #outEachExperiment = calculateCorrelation(pairs, expressionData, categ, dict, argv$correlMethod, indx)
         if (length(corrout)==0){
 	    corrout <<- outEachExperiment
         }else{
@@ -615,6 +645,11 @@ write.csv(compout,paste(outputFile,"output.csv",sep='comp-'),row.names=FALSE)
 write.csv(folchout,paste(outputFile,"output.csv",sep='folch-'),row.names=FALSE)
 
 print("Finished performing the requested analyses.")
+
+#if(argv$multicore){
+	#stop cluster
+	stopCluster(cl)	
+#}
 
 print("Performing the frequency analyses.")
 

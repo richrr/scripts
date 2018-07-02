@@ -4,6 +4,8 @@ args = commandArgs(trailingOnly=TRUE)
 # this file makes a different node file for every node for which you want to run bibc
 # this is useful when you want to edit the node file of all phenos to run bibc for each pheno
 
+### see if/how this code is different than the make_per_pheno_cmds.py ###
+
 node_file = args[1] # this file contains the node for which you want to make new node files
 attrib_file = args[2] # two column file containing "name" and "Class" (otu or gene)
 

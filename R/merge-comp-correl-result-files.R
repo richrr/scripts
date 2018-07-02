@@ -72,7 +72,6 @@ if(argv$majority){
 }
 
 
-
 outputFile = argv$output
 correlThreshold = argv$correlThreshold 
 pvalThreshold = argv$pvalThreshold
@@ -100,7 +99,7 @@ if(argv$multicore){
 }
 
 cl <<- makeCluster(allowed_cores, type="FORK")
-#registerDoParallel(cl)
+#registerDoParallel(cl)  # this function is used to register the parallel backend with the foreach package. not needed if not using foreach
 
 
 # number of columns
