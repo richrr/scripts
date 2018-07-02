@@ -562,25 +562,24 @@ generateNetwork = function(){
 	write.csv(outNetwork,paste0(networkFile,"-prePUCcut.csv"), quote=FALSE)
 	#print(head(outNetwork))
 	
-	DEN = length(outNetwork[,"PUC"])
-	NUM = DEN - length(outNetwork[as.numeric(outNetwork[,"PUC"])==1, "PUC"]) 
-	PUC_Prop = as.numeric(NUM*100/DEN) 
-	print("PUC after the ip, fisher, fd cuts:")
-	print(PUC_Prop)
-
 	 if(noPUC){
-	    # do nothing
+	    # do nothing		
      } else {
-	    # find PUC expected
+		# find puc after pval, cp, fdr cuts
+	 	DEN = length(outNetwork[,"PUC"])
+		NUM = DEN - length(outNetwork[as.numeric(outNetwork[,"PUC"])==1, "PUC"]) 
+		PUC_Prop = as.numeric(NUM*100/DEN) 
+		print("PUC after the ip, fisher, fd cuts:")
+		print(PUC_Prop)
+	 
+	    # keep PUC expected
 	    outNetwork = outNetwork[as.numeric(outNetwork[,"PUC"])==1 ,]
 		outNetwork = outNetwork[!is.na(as.numeric(outNetwork[,"PUC"])),] # remove the rows with 'NA' in PUC columns
+		write.csv (outNetwork,networkFile, quote=FALSE)
+		calc_stats(outNetwork, PUC_Prop)
      }
 
 	#print(head(outNetwork))
-        
-	write.csv (outNetwork,networkFile, quote=FALSE)
-
-    calc_stats(outNetwork, PUC_Prop)
 
     print("Done!")
 }
