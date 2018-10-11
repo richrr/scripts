@@ -51,6 +51,7 @@ my $outputFolder = "./RNA-SEQ";
 my $tophatProgram = "tophat";
 my $threads = 8;
 
+
 my $version;
 my $ucsc;
 my $ensembl;
@@ -67,6 +68,8 @@ my $help;
 
 my $lexogen; 
 
+#my $servers_cores = "transkingdom_60";  #separate different machines by ';' # e.g. "transkingdom_10;transkingdom_10;samwise_15"
+#my $sge_prefix = "SGE_Batch -c ". ." -m 50G -F 100G -P 10 -r log_mln_p1 -q transkingdom -M rodrrich@oregonstate.edu
 
 
 #my $min_read_length;
@@ -82,6 +85,8 @@ GetOptions (
             "human"  => \$human,   # flag.
             "mouse"  => \$mouse,   # flag.
 			"lexogen"  => \$lexogen,   # flag. #uses cutadapt by default
+			#"sge" => \$sge, # submit jobs on sge
+			#"servers_cores=s" => \$servers_cores, # split the full job to run on different machines with that many machine cores
 			"paired"  => \$paired),   # flag. # default is single
 or usage("Invalid commmand line options.");
 
@@ -110,16 +115,17 @@ sub usage {
 
    print STDERR (
       $message,
-      "usage: $command --inputFolder inputFolder [--outputFolder outputFolder] [--paired] --ensembl[|--ucsc] --human[|--mouse] [--lexogen] --version version\n" .
+      "usage: $command --inputFolder inputFolder [--outputFolder outputFolder] [--paired] --ensembl[|--ucsc] --human[|--mouse] [--lexogen] --version version\n" . #[--sge] [--servers_cores machines_cores;machine2_cores]
       "       Organism is required\n" .
       "       Namespace is required\n" .
       "       Version of genome and annotation is required\n" .
       "       Input folder defaults to ./\n" .
       "       Output folder defaults to ./RNA-SEQ\n" .
 	  "	      Default 8 threads\n" .
-	  "       Defaults to cutadapt. Specify --lexogen if needed\n" .
-      "       Defaults to single end. Specify --paired if needed\n"
-   );
+	  "       Defaults to cutadapt. Specify --lexogen if needed\n" #.
+     # "       Defaults to single end. Specify --paired if needed\n" .
+     # "       Use --sge with --servers_cores args to submit and split jobs on sge"
+   ); 
 
    die("\n")
 }

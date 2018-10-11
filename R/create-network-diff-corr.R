@@ -439,8 +439,13 @@ forPUC = function(FoldChangeMetabolic,noPUC){
 	#write.csv(outForPUC, "tmp-nopuc-file.csv", quote=F)
 	
     for(search_gr in search_group){
-	
-		interestedCoefficientColnames = grep(paste("combCategCoeff", search_gr, sep='_'),colnames(outForPUC), value=TRUE, fixed=TRUE)     
+	    #print(search_gr)
+		pattrn = paste("combCategCoeff", search_gr, sep='_')
+		
+		# why not directly build the required string instead of using grep to get the same string. did this to get around the case where one gr is substring of the other, e.g. --group stool4wk AbxHFHS\+nor stool4wk AbxHFHS
+		# while the \\b before and after, or ^ and $ before and after worked for normal strings, it seems it does not work for when we have special chars (\\, + , etc)
+		#interestedCoefficientColnames = grep(pattrn,colnames(outForPUC), value=TRUE, fixed=TRUE)
+		interestedCoefficientColnames = pattrn
 		print(interestedCoefficientColnames)
 		
 		interestedCorrelationData = outForPUC[,interestedCoefficientColnames, drop=FALSE]
@@ -655,6 +660,11 @@ generateNetwork = function(){
 	pvalueData = as.matrix(pvalueData)
 	pvalueData = apply(pvalueData,2,function(x){as.numeric(as.vector(x))})
 	
+	# added this on july 17 2018
+	if(is.null(nrow(pvalueData))){
+		print("Qutting since no edges passed the fisher pval or fdr cuts.")
+		q()
+	}
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
 	passIndevidualPvalue = apply(pvalueData,1,max)<individualPvalueCutoff
 	#print(passIndevidualPvalue)
@@ -670,7 +680,7 @@ generateNetwork = function(){
 	# the code does not handle pos and neg corrrelated stats for diff corr result files correctly
     calc_stats(outNetwork)
 
-        print("Done!")
+    print("Done!")
 }
 
 

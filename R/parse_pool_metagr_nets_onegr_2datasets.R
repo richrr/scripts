@@ -102,7 +102,7 @@ write.table(p, paste0(outputFile, "-exptfcpv-tmp-out.txt"), quote=F, row.names=F
 #https://stackoverflow.com/questions/39582031/r-multiple-conditions-in-if-statement
 #if (any(i <- (tester$V3> 200 & tester$V4>250))) {tester$V5[i] <- "one"} else {tester$V5[i] <-NA}
 
-# fc dir for genes betwn expts for hfhs and ncd
+# fc dir for genes betwn expts for hfhs
 p$fc_dir_of_genes_betn_expts <- 
           ifelse (p[,3] > 0 & p[,4] > 0 ,"up",
 			ifelse (p[,3] < 0 & p[,4] < 0 , "down",
@@ -128,13 +128,12 @@ ifelse( poolnetExpt$fc_dir_of_genes_betn_expts == "opposite" & poolnetExpt$sig_p
 
 
 head(poolnetExpt)
-
 write.table(poolnetExpt, paste0(outputFile, "-edgetype-out.txt"), quote=F, row.names=F, sep='\t')
 
 
 
 
-# has only the correlation with consistent dir in different groups.(2 hfhs and 2 ncd)
+# has only the correlation with consistent dir in different groups.(2 hfhs)
 metagr = read.csv(metagrfile, header=T, check.names=F, sep=',')
 #head(metagr)
 #dim(metagr)
@@ -178,7 +177,6 @@ if(nrow(df) == 0){
 
 rownames(df) = df[,1]
 #head(df)
-
 
 selcols = grep("Coefficient", colnames(df), value=T)
 selcols = grep("Direction", selcols, value=T, invert = T) # exclude the direction column from pooled net
@@ -310,4 +308,4 @@ calc_stats = function(inNet, correlThreshold=0){
 
 calc_stats(inNet)
 
-
+print("Done")

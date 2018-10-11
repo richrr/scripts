@@ -13,6 +13,10 @@ import pandas as pd
 # usage:  python ~/Morgun_Lab/richrr/scripts/python/sum_data_from_lanes_per_sample.py -i data_per_lane.txt -b rnaseqil
 
 
+#cd /nfs3/PHARM/Morgun_Lab/richrr/Milena_data_050917/analysis
+# python ~/Morgun_Lab/richrr/scripts/python/sum_data_from_lanes_per_sample.py -i suumarized-htseq-results.csv -b ignore -d , -s 5
+
+
 # sort it first on the prefix and then suffix of the "strng"
 def sort_headers(names, strng):
     return sorted(names, key=lambda x: (int(x.split(strng)[0]), int(x.split(strng)[1]))) 

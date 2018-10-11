@@ -549,6 +549,12 @@ generateNetwork = function(){
 	pvalueData = as.matrix(pvalueData)
 	pvalueData = apply(pvalueData,2,function(x){as.numeric(as.vector(x))})
 	
+	# added this on july 17 2018, after I added this is in the create nets for diff corr
+	if(is.null(nrow(pvalueData))){
+		print("Qutting since no edges passed the fisher pval or fdr cuts.")
+		q()
+	}
+
 	# calculate the largest pvalue among all datasets for each gene, this smallest pvalue must be smaller than threshold
 	passIndevidualPvalue = apply(pvalueData,1,max)<individualPvalueCutoff
 	#print(passIndevidualPvalue)
