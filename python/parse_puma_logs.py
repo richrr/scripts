@@ -30,7 +30,7 @@ def parse_count_files(f, delim='\t'):
 
 def main(args):
     # extract the statistics from the log
-    parser = argparse.ArgumentParser(description='check which taxa names (if any) have different copy numbers using their original/standard otu ids.')
+    parser = argparse.ArgumentParser(description='extract the statistics from the log of code for metagenomic analysis')
     parser.add_argument('-i', '--indir')
     parser.add_argument('-o', '--outfile', default="puma-statistics.txt")  # output filename
     parser.add_argument('-d', '--delimiter', default='\t')  # delimiter for file
