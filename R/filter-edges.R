@@ -16,7 +16,7 @@ library(stringr)
 #==================================================================================================================
 # parameters
 #==================================================================================================================
-p <- arg_parser('Keep pairs if they contain certain nodes. The output of this code can be used in --consistent to create networks.')
+p <- arg_parser('Keep pairs if they contain certain nodes. The output of this code can be used in --consistent to create networks. This is different than filter-edges-w-nodes.R which removed edges that have the nodes')
 p <- add_argument(p, "--file", help="consistent edges", nargs=1) # required; but written as optional format so I explicitly mention the arg
 # the following keeps edges if both partner1 and partner2 have allowed nodes. should work for most of the cases.
 p <- add_argument(p, "--keeppartners", help="list of nodes allowed in partners", nargs=1)

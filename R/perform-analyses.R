@@ -1,4 +1,4 @@
-##### to do: 
+##### to do:
 ## partial correlation
 ## parallelize method:
 ##   - analysis is sequential. parallelization currently only implemented for correlation (since those calcs take the longest) calc.
@@ -6,23 +6,23 @@
 
 
 
-# Usage: Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID 
+# Usage: Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/R/perform-analyses.R ./AllControl4Strains.csv --lists ./partner1.txt ./partner2.txt --mapFile mapFile.txt --mapColumns #SampleID Experiment --AnalysToDoList AnalysToDoList.txt --comparMethod mw --correlMethod sp --symbolColumnName #SampleID
 
 
-# Allowed analyses (conditions): 
+# Allowed analyses (conditions):
 # add 4th column with "correlation" to indicate whatever operation is to be done, needs to be done on correlations
 # 1. A vs B: 2 non-empty columns, last two columns empty [A	B empty empty]
 # 2. delta A vs delta B: 3 non-empty columns, 3rd column delta, 4th column empty [A	B	delta	empty]  # needs 4 groups: two comma separated from A and two comma separated from B
 # 3. A vs B paired:  3 non-empty columns, 3rd column paired, 4th column empty [A	B	paired	empty]
 # 4. Correl A: 2 non-empty columns, 4th column correlation [A	empty	empty	correlation]
-# 5. Correl delta A: 3 non-empty columns, 2nd column empty, 3rd column delta, 4th column correlation [A	empty	delta	correlation] # needs 2 groups: two comma separated from A 
+# 5. Correl delta A: 3 non-empty columns, 2nd column empty, 3rd column delta, 4th column correlation [A	empty	delta	correlation] # needs 2 groups: two comma separated from A
 # 6. Correl A vs. Correl B: 3 non-empty columns, 4th column correlation [A	B	empty	correlation]
 # 7. Correl delta A vs. Correl delta B: 4 non-empty columns, 3rd column delta, 4th column correlation [A	B	delta	correlation] # needs 4 groups: two comma separated from A and two comma separated from B
 # 8. Correl A vs. Correl B paired: 4 non-empty columns, 3rd column paired, 4th column correlation [A	B	paired	correlation]
 ## no need to do paired in 8
 # 9. Timelag Correl A and B (where A and B are different time points): 4 non-empty columns, 3rd column timelag, 4th column correlation [A	B	timelag	correlation]
 ## std. correlations: g1T1-g2T1 or g1T2-g2T2
-## calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc. 
+## calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc.
 ## for all gene pairs: give group 1 (T1) to first gene, group 2 (T2) to second gene
 
 
@@ -55,7 +55,7 @@ p <- add_argument(p, "--noCorrelationsRequested", help="This is a preliminary an
 p <- add_argument(p, "--skipDiffInputsCheck", help="does not quit if diff input check fails.", flag=TRUE) # avoid using this
 
 # # required; but written as optional format so I explicitly mention the following in cmd line
-p <- add_argument(p, "--lists", help="lists (of measurement labels e.g. taxa names, phenotypics tests) to generate pairs for calculate correlation", nargs=2) 
+p <- add_argument(p, "--lists", help="lists (of measurement labels e.g. taxa names, phenotypics tests) to generate pairs for calculate correlation", nargs=2)
 p <- add_argument(p, "--AnalysToDoList", help="AnalysToDoList", default="AnalysToDoList.txt") # tab-delimited; perform correlations and/or comparisons as per input
 p <- add_argument(p, "--mapFile", help="tab delimited mapFile", default="mapFile.txt") # use the mapping file to identify the samples group affiliation to perform analysis
 p <- add_argument(p, "--mapColumns", nargs=2, help="Columns in map file in which to search the sample group associations", default=c("#SampleID","Experiment")) # use the columns in the mapping file to identify the samples group affiliation to perform analysis
@@ -64,7 +64,7 @@ p <- add_argument(p, "--pairedInfoColumn", help="Column in map file in which to 
 ## optional methods for t test and correlations
 p <- add_argument(p, "--comparMethod", help="method to compa A vs B", default="limma") # allowed: "tt" (Welch t test), "mw" (Mann-Whitney U Test), limma
 p <- add_argument(p, "--correlMethod", help="method to corre A vs B", default="pearson") # allowed: pearson, "kendall", or "spearman", can be abbreviated.
-p <- add_argument(p, "--logbase", help="calc log using the base", default=2) 
+p <- add_argument(p, "--logbase", help="calc log using the base", default=2)
 	# allowed: 0 (no log. be careful since this may mean that the data was logged outside this script), 1 (e), 2, 10
 p <- add_argument(p, "--background", help="the background level usually obtained from the raw files. this is used to find low expression probes", default=0)
 
@@ -129,7 +129,7 @@ dict = hash()
 for(k in levels(mapFile[, exptCol])){
     # extract the rows whose col value in exptCol matches k
     # assign the sample names (i.e. values in samplIdCol) to key k
-    dict[k] = as.vector(mapFile[which(mapFile[,exptCol]==k), samplIdCol]) 
+    dict[k] = as.vector(mapFile[which(mapFile[,exptCol]==k), samplIdCol])
 }
 #print(dict)
 
@@ -137,7 +137,7 @@ for(k in levels(mapFile[, exptCol])){
 # check the number and order of samples assigned to groups in dict. MAY be as per the order in which the samples are added (order in the mapping file)
 #==================================================================================================================
 for(k in keys(dict)){
-    str_r_l = paste(k, length(dict[[k]]), "values", paste(as.vector(dict[[k]]), collapse=", "), sep="---") 
+    str_r_l = paste(k, length(dict[[k]]), "values", paste(as.vector(dict[[k]]), collapse=", "), sep="---")
     print(str_r_l)
 }
 
@@ -151,9 +151,9 @@ checkPairing = function(catg1, catg2, dict, mapFile, pairedInfoColumn, samplIdCo
         tmp_mapFile = as.matrix(mapFile)
         row.names(tmp_mapFile) = mapFile[,samplIdCol]
         #print(tmp_mapFile)
-        m1 = as.vector(tmp_mapFile[s1, pairedInfoColumn]) 
+        m1 = as.vector(tmp_mapFile[s1, pairedInfoColumn])
         print(m1)
-        m2 = as.vector(tmp_mapFile[s2, pairedInfoColumn]) 
+        m2 = as.vector(tmp_mapFile[s2, pairedInfoColumn])
         print(m2)
 
         bool = all.equal(m1,m2)
@@ -171,7 +171,7 @@ checkPairing = function(catg1, catg2, dict, mapFile, pairedInfoColumn, samplIdCo
 
 for(indx in 1:nrow(AnalysToDoList)){
     c = as.vector(AnalysToDoList[indx,])
-    
+
     #print(c)
     if(c[3] == "paired" || c[3] == "delta" || c[3] == "timelag"){
     print(c)
@@ -183,7 +183,7 @@ for(indx in 1:nrow(AnalysToDoList)){
 
         cA = strsplit(categA, ",")[[1]]
         categ1 = cA[1]
-        categ2 = cA[2] 
+        categ2 = cA[2]
         checkPairing(categ1, categ2, dict, mapFile, argv$pairedInfoColumn, samplIdCol)
 
         cB = strsplit(categB, ",")[[1]]
@@ -223,7 +223,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         categ1 = cA[1]
         categ2 = cA[2]
         checkPairing(categ1, categ2, dict, mapFile, argv$pairedInfoColumn, samplIdCol)
- 
+
         cB = strsplit(categB, ",")[[1]]
         categ3 = cB[1]
         categ4 = cB[2]
@@ -235,7 +235,7 @@ for(indx in 1:nrow(AnalysToDoList)){
       if(c[1] != "" && c[2] != "" && c[3] == "timelag" && c[4] == "correlation"){
         print("9")
         # std. correlations: g1T1-g2T1 or g1T2-g2T2
-        # calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc. 
+        # calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc.
         # for all gene pairs: give group 1 (T1) to first gene, group 2 (T2) to second gene
         categ1= toString(c[1,"V1"])
         categ2= toString(c[1,"V2"])
@@ -243,7 +243,7 @@ for(indx in 1:nrow(AnalysToDoList)){
 
       } # end timelag if
 
-      
+
     } # end outer if
 
 }# end for
@@ -273,10 +273,10 @@ if(!argv$noCorrelationsRequested){
 	if(identical(genes1, genes2)){
 		pairs = t(combn(genes1,2))[,2:1]
 		# use below for testing purposes and/or when calculating partial correlation # has same gene pairs (e.g. gene1 gene1)
-                #pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE) # from https://gist.github.com/randy3k/10015496 for testing purposes 
+                #pairs = combinations(length(unique(genes1)), 2, genes1, repeats.allowed=TRUE) # from https://gist.github.com/randy3k/10015496 for testing purposes
 	}else{
 		pairs = expand.grid(genes1,genes2)  # does genes1 x genes2 pairs ## not sure about this-> this has all the above & their opposite (e.g. gene1 gene2 and gene2 gene1) & same gene pairs (e.g. gene1 gene1)
-	}	
+	}
 	#write.csv(pairs,pairFile,row.names=FALSE)
 	#file.remove("./testpair.txt")
   }else{
@@ -346,7 +346,7 @@ csv_tmp_a12 = grep("," , tmp_a12, value = TRUE)
 # split based on ','
 no_csv_tmp_a12 = unlist(strsplit(csv_tmp_a12, ','))
 # remove elements with ',' and replace with the vector obtained by splitting on ','
-uniq_analys_elems = append(setdiff( tmp_a12, csv_tmp_a12 ), no_csv_tmp_a12) 
+uniq_analys_elems = append(setdiff( tmp_a12, csv_tmp_a12 ), no_csv_tmp_a12)
 
 # elements contains ';' in case of anova like analysis
 semcol_tmp_a12 = grep(";" , uniq_analys_elems, value = TRUE)
@@ -362,7 +362,7 @@ uniq_analys_elems_tmp = append(setdiff( no_semcol_tmp_a12, vs_no_semcol_tmp_a12 
 
 
 # remove elements with ';' and replace with the vector obtained by splitting on ';'
-uniq_analys_elems = append(setdiff( uniq_analys_elems, semcol_tmp_a12 ), uniq_analys_elems_tmp) 
+uniq_analys_elems = append(setdiff( uniq_analys_elems, semcol_tmp_a12 ), uniq_analys_elems_tmp)
 #print(uniq_analys_elems)
 
 checkDiffInputs(unique(uniq_analys_elems[uniq_analys_elems != ""]), as.vector(mapFile[, exptCol]), "analysis", "mapping")
@@ -373,7 +373,7 @@ calcFC = function(v1 , v2){
     v1 = as.numeric(as.vector(v1))
     v2 = as.numeric(as.vector(v2))
 
-    FC = c() 
+    FC = c()
     for(i in 1:length(v1)){
         if(is.na(v1[i]) || is.na(v2[i])){
             FC = c(FC, NA)
@@ -382,7 +382,7 @@ calcFC = function(v1 , v2){
             FC = c(FC, fc)
         }
     }
-           
+
     return(FC)
 }
 
@@ -398,7 +398,7 @@ folchout = c()
 #==================================================================================================================
 for(indx in 1:nrow(AnalysToDoList)){
     c = as.vector(AnalysToDoList[indx,])
-    
+
     #print(c)
     if(c[1] != "" && c[2] != "" && c[3] == "" && c[4] == ""){
         print("1")
@@ -409,7 +409,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then use genes1
 	    genes = genes1
 	}else{                              # else take union
-	    genes = union(genes1,genes2)  
+	    genes = union(genes1,genes2)
 	} # end else
 
         # calculate comparison
@@ -440,11 +440,11 @@ for(indx in 1:nrow(AnalysToDoList)){
         cA = strsplit(categA, ",")[[1]]
         categ1 = cA[1]
         categ2 = cA[2]
- 
+
         cB = strsplit(categB, ",")[[1]]
         categ3 = cB[1]
         categ4 = cB[2]
- 
+
         if(categ1 == "" || categ2 == "" || categ3 == "" || categ4 == ""){
             print("Error in number of categories. Give categ1,categ2\tcateg3,categ4")
             next
@@ -456,7 +456,7 @@ for(indx in 1:nrow(AnalysToDoList)){
 	    genes = genes1
 	}else{                              # else take union
 	    #print("Reached here")
-	    genes = union(genes1,genes2)  
+	    genes = union(genes1,genes2)
 	} # end else
 
         # calculate comparison
@@ -486,7 +486,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then use genes1
 	    genes = genes1
 	}else{                              # else take union
-	    genes = union(genes1,genes2)  
+	    genes = union(genes1,genes2)
 	} # end else
 
         # calculate comparison
@@ -511,7 +511,7 @@ for(indx in 1:nrow(AnalysToDoList)){
     }else if(c[1] != "" && c[2] == "" && c[3] == "" && c[4] == "correlation"){
         print("4")
         categ= toString(c[1,"V1"])
-        
+
         # calculate correlations
         tmp_tmp = ''
 	    if(argv$multicore){
@@ -520,19 +520,19 @@ for(indx in 1:nrow(AnalysToDoList)){
 			tmp_tmp = calculateCorrelation(pairs, expressionData, categ, dict, argv$correlMethod, indx)
 	    }
 	   outEachExperiment = tmp_tmp
-        
+
         #outEachExperiment = calculateCorrelation(pairs, expressionData, categ, dict, argv$correlMethod, indx)
         if (length(corrout)==0){
 	    corrout <<- outEachExperiment
         }else{
 	    corrout <<- merge(corrout,outEachExperiment,sort=FALSE,by=1)
         } # end else
-        
+
         genes = ''
         if ( sum(genes1 != genes2)==0){     # if gene list1 is the same as gene list2 then use genes1
 	    genes = genes1
 	}else{                              # else take union
-	    genes = union(genes1,genes2)  
+	    genes = union(genes1,genes2)
 	} # end else
 
         # calculate partial correlations only for the given list of genes (all pairs of the list)
@@ -553,7 +553,7 @@ for(indx in 1:nrow(AnalysToDoList)){
         cA = strsplit(categA, ",")[[1]]
         categ1 = cA[1]
         categ2 = cA[2]
-  
+
         if(categ1 == "" || categ2 == ""){
             print("Error in number of categories. Give categ1,categ2")
             next
@@ -592,11 +592,11 @@ for(indx in 1:nrow(AnalysToDoList)){
         cA = strsplit(categA, ",")[[1]]
         categ1 = cA[1]
         categ2 = cA[2]
- 
+
         cB = strsplit(categB, ",")[[1]]
         categ3 = cB[1]
         categ4 = cB[2]
- 
+
         if(categ1 == "" || categ2 == "" || categ3 == "" || categ4 == ""){
             print("Error in number of categories. Give categ1,categ2\tcateg3,categ4")
             next
@@ -617,7 +617,7 @@ for(indx in 1:nrow(AnalysToDoList)){
     }else if(c[1] != "" && c[2] != "" && c[3] == "timelag" && c[4] == "correlation"){
         print("9")
         # std. correlations: g1T1-g2T1 or g1T2-g2T2
-        # calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc. 
+        # calculate timelag correlations for g?T1-g?T2 : will take care of g1T1-g1T2, g1T1-g2T2, etc.
         # for all gene pairs: give group 1 (T1) to first gene, group 2 (T2) to second gene
         categ1= toString(c[1,"V1"])
         categ2= toString(c[1,"V2"])
@@ -648,7 +648,7 @@ print("Finished performing the requested analyses.")
 
 #if(argv$multicore){
 	#stop cluster
-	stopCluster(cl)	
+	stopCluster(cl)
 #}
 
 print("Performing the frequency analyses.")
@@ -662,29 +662,4 @@ system(freqcmd, wait=TRUE)
 print("Finished performing the requested frequency analyses.")
 
 print("You may want to run merge-comp-correl-results-files.R next.")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

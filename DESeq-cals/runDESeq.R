@@ -6,6 +6,8 @@
 # Sep 28 2017
 ###
 
+### when these commands were written, the map file was option since the code was hardcoded at that point to quickly get the results.
+### after oct 10 2018, the mapfile arg is required.
 # cd /nfs3/PHARM/Morgun_Lab/richrr/Type2_Diabetes/RNA-Seq/analysis/DESEQ
 # [Linux@transkingdom DESEQ]$ Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/DESeq-cals/runDESeq.R ../summarize_per_sample/summed-values-abx2.csv ncd expt1_hfhs_ncd_
 # [Linux@transkingdom DESEQ]$ Rscript /nfs3/PHARM/Morgun_Lab/richrr/scripts/DESeq-cals/runDESeq.R ../summarize_per_sample/summed-values-abx3.csv ncd expt2_hfhs_ncd_
@@ -30,29 +32,56 @@ expressionDataFile = args[1]
 
 expressionData = read.csv(expressionDataFile,header = TRUE,check.names=FALSE,na.strings=c("","na","NA", "Na", "NaN"), row.names=1)
 
-controlstr = args[2] # e.g. ncd (case sensitive)
+controlstr = args[2] # e.g. ncd (case sensitive) (if "normalizationonly", the code quits after normalization)
 outstr = args[3] # e.g. hfhs_ncd
 
-# for testing purposes only used the ncd and hfhs
-countdata <- expressionData[ ,1:10]
+mapfile = args[4]
+mapcol = args[5]
+
+## hardcoded-pre-oct-10-2018
+## for testing purposes only used the ncd and hfhs
+##countdata <- expressionData[ ,1:10]
+## Convert to matrix
+##countdata <- as.matrix(countdata)
 
 # Convert to matrix
-countdata <- as.matrix(countdata)
+countdata <- as.matrix(expressionData)
 head(countdata)
 
-# Assign condition (first 5 are controls, second 5 contain the expansion)
-(condition <- factor(c(rep("ncd", 5), rep("hfhs", 5))))
-print("Input")
+countids = colnames(countdata)
+head(countids)
+
+map = read.delim(mapfile,header = TRUE,sep="\t",check.names=FALSE)
+mapids = as.vector(map[,1])
+head(mapids)
+
+#https://stackoverflow.com/questions/10374932/comparing-two-vectors-in-an-if-statement
+if(!(all(length(countids)==length(mapids)) && all(countids==mapids))){
+	print("The order of samples do not match in the data and map file. Quitting!")
+}
+
+
+
+## hardcoded-pre-oct-10-2018
+## Assign condition (first 5 are controls, second 5 contain the expansion)
+##(condition <- factor(c(rep("ncd", 5), rep("hfhs", 5))))
+##print("Input")
+
+condition = map[ ,mapcol]
 condition
+
 
 
 #### something like this HAS to be used, else the the lexicographic sort gives ncd/hfhs
 #### that may also affect the following results, so be careful that this relevel works
 #### the way you want it to and samples are not incorrectly assigned.
 #####samples$condition <- relevel(samples$condition, controlstr)
-condition = relevel(condition, controlstr)
-print("Releveled. Note the order of the Levels: ")
-condition
+if(controlstr != "normalizationonly"){
+	condition = relevel(condition, controlstr)
+	print("Releveled. Note the order of the Levels: ")
+	condition
+}
+
 
 library(DESeq2)
 
@@ -85,10 +114,19 @@ dds <- DESeqDataSetFromMatrix(countData=countdata, colData=coldata, design=~cond
 dds
 
 
-
-
 # Run the DESeq pipeline
 dds <- DESeq(dds)
+
+
+if (controlstr == "normalizationonly"){
+	resdata <- as.data.frame(counts(dds, normalized=TRUE))
+	print(head(resdata))
+	## Write results
+	write.csv(resdata, file=paste0(outstr, "deseq2-normalized-data.csv"))
+	print("Finished DESEQ2 normalization. Writing the results and quitting as requested!")
+	q()
+}
+
 
 
 # Plot dispersions

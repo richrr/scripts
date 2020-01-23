@@ -17,9 +17,9 @@ p <- add_argument(p, "--group", help="use the correlation for 'group'. Generate 
 #p <- add_argument(p, "--groups", help="use the correlations for 'groups'. Calc. PUC using both these groups (states). Default only uses one state as mentioned in --group", nargs=2) # not implemented
 p <- add_argument(p, "--foldchange", help="file containing foldchange to be used in analysis") ### use the merged file with consistent genes across datasets
 p <- add_argument(p, "--output", help="output file", default="./build_netw_")
-p <- add_argument(p, "--indivPvalCutoff", help="individualPvalueCutoff", default=0.005, type="numeric") # 0.05
-p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.1, type="numeric") # 0.05
-p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.3, type="numeric") # 
+p <- add_argument(p, "--indivPvalCutoff", help="individualPvalueCutoff", default=0.3, type="numeric") # 0.05
+p <- add_argument(p, "--combPvalCutoff", help="combinedPvalueCutoff", default=0.05, type="numeric") # 0.05
+p <- add_argument(p, "--combFDRCutoff", help="combinedFDRCutoff", default=0.15, type="numeric") # 
 p <- add_argument(p, "--foldchthresh", help="fold change threshold", default=0, type="numeric") # default is logged data so check whether greater than 0. use 1 for unlog data
 p <- add_argument(p, "--logbase", help="calc log using the base", default=2) # allowed: 0 (no log), 1 (e), 2, 10
 

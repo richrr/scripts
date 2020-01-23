@@ -63,6 +63,7 @@ numericizeVector = function(c){
 
 CalcCor = function(pair, edata, c, dict, correlMethod){
     idxs = as.vector(dict[[c]])
+    #print(idxs)
 
     #commented the following because (a) it was hard to keep track of global n (b) didn't want to add write time
     #n<<- n+1
@@ -74,6 +75,11 @@ CalcCor = function(pair, edata, c, dict, correlMethod){
 
     c1 = numericizeVector(as.vector(edata[pair[1], idxs]))
     c2 = numericizeVector(as.vector(edata[pair[2], idxs]))
+    #print(pair[1])
+    #print(c1)
+    #print(pair[2])
+    #print(c2)
+
 
     outLine = ''
     # there are less than 3 samples with values (i.e. without NA)
@@ -561,8 +567,8 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 }
 
 
-library(Biobase)
-library(limma)
+#library(Biobase)
+#library(limma)
 
 # http://stackoverflow.com/questions/2602583/geometric-mean-is-there-a-built-in
 gm_mean = function(x, na.rm=TRUE){
@@ -674,6 +680,8 @@ CalcCom = function(lgene, edata, c1, c2, dict, comparMethod, pairedd){
     cat (calculating)
     cat ("\n")
 
+	#print(c1)
+	#print(c2)
     idxs1 = as.vector(dict[[c1]])
     idxs2 = as.vector(dict[[c2]])
 

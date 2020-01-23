@@ -494,8 +494,8 @@ calculateDeltaCorrelation = function (pairs, expressionData, c1, c2, dict, corre
 }
 
 
-library(Biobase)
-library(limma)
+#library(Biobase)
+#library(limma)
 
 # http://stackoverflow.com/questions/2602583/geometric-mean-is-there-a-built-in
 gm_mean = function(x, na.rm=TRUE){
